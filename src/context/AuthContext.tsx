@@ -163,9 +163,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             userId: newUser.id,
             board: 'CBSE',
             classLevel: '11',
+            stream: 'Science',
+            curriculumType: 'NCERT / National Curriculum Framework (NCF)',
             academicYear: '2026-27',
             preferredLanguage: 'English',
-            subjects: ['Mathematics', 'Physics'],
+            subjects: ['Mathematics', 'Physics', 'Chemistry'],
             isProfileComplete: false,
             updatedAt: new Date().toISOString()
           };
@@ -204,6 +206,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       userId: newUser.id,
       board: 'CBSE',
       classLevel: '11',
+      stream: 'Science',
+      curriculumType: 'NCERT / National Curriculum Framework (NCF)',
       academicYear: '2026-27',
       preferredLanguage: 'English',
       subjects: ['Physics', 'Mathematics', 'Chemistry'],

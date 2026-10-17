@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   FileText, 
   Image as ImageIcon, 
@@ -31,12 +31,20 @@ export const AskDoubt: React.FC = () => {
   const { user, educationProfile } = useAuth();
   const { recordLearningActivity } = useStudyTime();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const querySubject = searchParams.get('subject');
+  const queryTopic = searchParams.get('topic');
 
   const [activeTab, setActiveTab] = useState<'type' | 'image' | 'document'>('type');
   const [questionText, setQuestionText] = useState('');
-  const [subject, setSubject] = useState(educationProfile?.subjects?.[0] || 'Physics');
-  const [topic, setTopic] = useState('');
+  const [subject, setSubject] = useState(querySubject || educationProfile?.subjects?.[0] || 'Physics');
+  const [topic, setTopic] = useState(queryTopic || '');
   const [language, setLanguage] = useState(educationProfile?.preferredLanguage || 'English');
+
+  useEffect(() => {
+    if (querySubject) setSubject(querySubject);
+    if (queryTopic) setTopic(queryTopic);
+  }, [querySubject, queryTopic]);
   
   // File upload state
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);

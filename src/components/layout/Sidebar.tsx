@@ -16,7 +16,8 @@ import {
   PieChart,
   Clock,
   Zap,
-  Target
+  Target,
+  GraduationCap
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -36,6 +37,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) =
   const navItems = [
     { name: 'Home', path: '/', icon: Home },
     { name: 'My Profile', path: '/profile', icon: User },
+    { name: 'Syllabus', path: '/syllabus', icon: GraduationCap },
     { name: 'Ask a Doubt', path: '/doubt', icon: HelpCircle },
     { name: 'Learning History', path: '/history', icon: History },
     { name: 'Weak Topics', path: '/weak-topics', icon: AlertTriangle },

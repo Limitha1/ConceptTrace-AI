@@ -9,7 +9,9 @@ import {
   LogOut, 
   CheckCircle2, 
   Database, 
-  RotateCcw 
+  RotateCcw,
+  GraduationCap,
+  ExternalLink
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { clearStudentRecords, getStoredQueries, getStoredPracticeAttempts } from '../../lib/storage';
@@ -126,6 +128,60 @@ export const SettingsPage: React.FC = () => {
         >
           Save Language Preference
         </button>
+      </div>
+
+      {/* Academic Curriculum & Syllabus Setting */}
+      <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-6 space-y-4">
+        <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+          <div className="flex items-center gap-2.5">
+            <GraduationCap className="w-5 h-5 text-indigo-600" />
+            <h2 className="text-sm font-extrabold text-slate-900">Academic Board & Syllabus</h2>
+          </div>
+          <button
+            type="button"
+            onClick={() => navigate('/syllabus')}
+            className="text-xs font-bold text-indigo-600 hover:underline flex items-center gap-1"
+          >
+            <span>View Syllabus</span>
+            <ExternalLink className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100">
+            <span className="text-[10px] uppercase font-bold text-slate-400 block">Board & Class</span>
+            <span className="text-xs font-extrabold text-slate-800">
+              {educationProfile?.board || 'CBSE'} • Class {educationProfile?.classLevel || '11'}
+            </span>
+          </div>
+
+          <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100">
+            <span className="text-[10px] uppercase font-bold text-slate-400 block">Stream</span>
+            <span className="text-xs font-extrabold text-slate-800">
+              {educationProfile?.classLevel === '10' ? 'General' : (educationProfile?.stream || 'Science')}
+            </span>
+          </div>
+
+          <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100">
+            <span className="text-[10px] uppercase font-bold text-slate-400 block">Enrolled Subjects</span>
+            <span className="text-xs font-extrabold text-slate-800">
+              {educationProfile?.subjects?.length || 0} Subjects
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between pt-1">
+          <p className="text-[11px] text-slate-500">
+            Need to change your board, stream, or subjects? You can update them in your Student Profile.
+          </p>
+          <button
+            type="button"
+            onClick={() => navigate('/profile')}
+            className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition"
+          >
+            Edit Profile
+          </button>
+        </div>
       </div>
 
       {/* 2. Notification Preferences */}

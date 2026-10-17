@@ -12,15 +12,31 @@ import {
   Clock 
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import type { EducationBoard, ClassLevel, PreferredLanguage } from '../../types';
+import { useNavigate } from 'react-router-dom';
+import type { EducationBoard, ClassLevel, PreferredLanguage, StudentStream } from '../../types';
+import { 
+  STREAM_OPTIONS, 
+  CURRICULUM_TYPES, 
+  getAvailableSubjects, 
+  validateEducationSelections 
+} from '../../lib/syllabusData';
 
 export const MyProfile: React.FC = () => {
   const { user, educationProfile, updateProfile, updateEducationProfile } = useAuth();
+  const navigate = useNavigate();
 
   const [isEditing, setIsEditing] = useState(false);
   const [fullName, setFullName] = useState(user?.fullName || 'Student');
   const [board, setBoard] = useState<EducationBoard>(educationProfile?.board || 'CBSE');
   const [classLevel, setClassLevel] = useState<ClassLevel>(educationProfile?.classLevel || '11');
+  const [stream, setStream] = useState<StudentStream>(
+    educationProfile?.classLevel === '10' 
+      ? 'General' 
+      : (educationProfile?.stream || 'Science')
+  );
+  const [curriculumType, setCurriculumType] = useState<string>(
+    educationProfile?.curriculumType || 'NCERT / National Curriculum Framework (NCF)'
+  );
   const [academicYear, setAcademicYear] = useState<string>(educationProfile?.academicYear || '2026-27');
   const [preferredLanguage, setPreferredLanguage] = useState<PreferredLanguage>(educationProfile?.preferredLanguage || 'English');
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>(
@@ -42,15 +58,26 @@ export const MyProfile: React.FC = () => {
     'Other'
   ];
 
-  const allSubjects = [
-    'Mathematics',
-    'Physics',
-    'Chemistry',
-    'Biology',
-    'Computer Science',
-    'English Core',
-    'General Science'
-  ];
+  const availableSubjectsList = getAvailableSubjects(board, classLevel, stream);
+
+  const handleClassChange = (newClass: ClassLevel) => {
+    setClassLevel(newClass);
+    if (newClass === '10') {
+      setStream('General');
+      setSelectedSubjects(['Mathematics', 'Science', 'Social Science', 'English Language & Literature']);
+    } else {
+      const activeStream = stream === 'General' ? 'Science' : stream;
+      setStream(activeStream);
+      const defaults = STREAM_OPTIONS.find(s => s.id === activeStream)?.defaultSubjects || ['Physics', 'Chemistry', 'Mathematics'];
+      setSelectedSubjects(defaults);
+    }
+  };
+
+  const handleStreamChange = (newStream: StudentStream) => {
+    setStream(newStream);
+    const defaults = STREAM_OPTIONS.find(s => s.id === newStream)?.defaultSubjects || ['Physics', 'Chemistry', 'Mathematics'];
+    setSelectedSubjects(defaults);
+  };
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -87,6 +114,12 @@ export const MyProfile: React.FC = () => {
       return;
     }
 
+    const validation = validateEducationSelections(board, classLevel, stream, selectedSubjects);
+    if (!validation.isValid) {
+      setError(validation.messages[0]?.text || 'Invalid education selections.');
+      return;
+    }
+
     updateProfile({
       fullName,
       avatarUrl
@@ -95,6 +128,8 @@ export const MyProfile: React.FC = () => {
     updateEducationProfile({
       board,
       classLevel,
+      stream,
+      curriculumType,
       academicYear,
       preferredLanguage,
       subjects: selectedSubjects,
@@ -278,7 +313,7 @@ export const MyProfile: React.FC = () => {
                 <select
                   disabled={!isEditing}
                   value={classLevel}
-                  onChange={(e) => setClassLevel(e.target.value as ClassLevel)}
+                  onChange={(e) => handleClassChange(e.target.value as ClassLevel)}
                   className="w-full px-3 py-2.5 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 disabled:opacity-75 disabled:cursor-not-allowed"
                 >
                   <option value="10">Class 10</option>
@@ -302,6 +337,46 @@ export const MyProfile: React.FC = () => {
                   <option value="2024-25">2024-25</option>
                 </select>
               </div>
+            </div>
+
+            {/* Stream Selection */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                Academic Stream
+              </label>
+              {classLevel === '10' ? (
+                <div className="py-2 px-3 bg-slate-100 rounded-xl text-slate-600 text-xs font-medium">
+                  General Foundation Curriculum (Classes 11–12 have Science, Commerce, Arts)
+                </div>
+              ) : (
+                <select
+                  disabled={!isEditing}
+                  value={stream}
+                  onChange={(e) => handleStreamChange(e.target.value as StudentStream)}
+                  className="w-full px-3 py-2.5 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 disabled:opacity-75 disabled:cursor-not-allowed"
+                >
+                  <option value="Science">Science (PCM / PCB / PCMB)</option>
+                  <option value="Commerce">Commerce & Business</option>
+                  <option value="Humanities/Arts">Humanities / Social Sciences</option>
+                </select>
+              )}
+            </div>
+
+            {/* Curriculum Framework */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                Curriculum Framework / Syllabus Type
+              </label>
+              <select
+                disabled={!isEditing}
+                value={curriculumType}
+                onChange={(e) => setCurriculumType(e.target.value)}
+                className="w-full px-3 py-2.5 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 disabled:opacity-75 disabled:cursor-not-allowed"
+              >
+                {CURRICULUM_TYPES.map(ct => (
+                  <option key={ct} value={ct}>{ct}</option>
+                ))}
+              </select>
             </div>
           </div>
 
@@ -329,26 +404,38 @@ export const MyProfile: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-2">
-              Enrolled Subjects
-            </label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-xs font-bold text-slate-700">
+                Enrolled Subjects
+              </label>
+              <button
+                type="button"
+                onClick={() => navigate('/syllabus')}
+                className="text-xs font-bold text-indigo-600 hover:text-indigo-800 hover:underline flex items-center gap-1"
+              >
+                <BookOpen className="w-3.5 h-3.5" />
+                <span>View Full Syllabus Chapters</span>
+              </button>
+            </div>
             <div className="flex flex-wrap gap-2">
-              {allSubjects.map((subj) => {
-                const isSelected = selectedSubjects.includes(subj);
+              {availableSubjectsList.map((subjObj) => {
+                const isSelected = selectedSubjects.includes(subjObj.subject);
                 return (
                   <button
-                    key={subj}
+                    key={subjObj.subject}
                     type="button"
                     disabled={!isEditing}
-                    onClick={() => toggleSubject(subj)}
+                    onClick={() => toggleSubject(subjObj.subject)}
                     className={`py-1.5 px-3 rounded-xl text-xs font-semibold border transition flex items-center gap-1.5 ${
                       isSelected
                         ? 'bg-indigo-50 border-indigo-300 text-indigo-900 font-bold'
-                        : 'bg-slate-50 border-slate-200 text-slate-500 opacity-60'
+                        : isEditing 
+                        ? 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                        : 'bg-slate-50 border-slate-200 text-slate-400 opacity-50'
                     }`}
                   >
                     <BookOpen className="w-3.5 h-3.5" />
-                    <span>{subj}</span>
+                    <span>{subjObj.subject}</span>
                     {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-indigo-600" />}
                   </button>
                 );

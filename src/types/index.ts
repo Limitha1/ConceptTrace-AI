@@ -29,6 +29,10 @@ export type TopicProficiencyCategory =
   | 'Improving' 
   | 'Doing Well';
 
+export type StudentStream = 'Science' | 'Commerce' | 'Humanities/Arts' | 'General';
+
+export type SyllabusStatus = 'Verified' | 'Partially Available' | 'Unavailable';
+
 export interface UserProfile {
   id: string;
   email: string;
@@ -42,6 +46,8 @@ export interface EducationProfile {
   userId: string;
   board: EducationBoard;
   classLevel: ClassLevel;
+  stream?: StudentStream;
+  curriculumType?: string;
   academicYear: string;
   preferredLanguage: PreferredLanguage;
   subjects: string[];
@@ -164,6 +170,77 @@ export interface NotificationItem {
   linkUrl?: string;
 }
 
+export interface OfficialSyllabusDocument {
+  id: string;
+  title: string;
+  fileUrl: string;
+  fileType: 'pdf' | 'doc' | 'web';
+  fileSize?: string;
+  sourceType: 'Official Board' | 'Secondary Trustworthy';
+  sourceName: string;
+  sourceUrl: string;
+  publishedDate?: string;
+  academicYear: string;
+}
+
+export interface AssessmentPattern {
+  theoryMarks: number;
+  practicalOrInternalMarks: number;
+  totalMarks: number;
+  durationHours: number;
+  formatDescription?: string;
+}
+
+export interface SyllabusTopicItem {
+  id: string;
+  title: string;
+  description?: string;
+  subtopics?: string[];
+  keyConcepts?: string[];
+  weightageMarks?: number;
+  periods?: number;
+}
+
+export interface SyllabusChapter {
+  id: string;
+  chapterNumber: number;
+  title: string;
+  unitName?: string;
+  description?: string;
+  topics: SyllabusTopicItem[];
+  totalPeriods?: number;
+  weightageMarks?: number;
+}
+
+export interface SyllabusSubjectUnit {
+  id: string;
+  unitNumber: number | string;
+  unitTitle: string;
+  weightageMarks?: number;
+  totalPeriods?: number;
+  chapters: SyllabusChapter[];
+}
+
+export interface SubjectSyllabus {
+  id: string;
+  board: EducationBoard;
+  classLevel: ClassLevel;
+  stream?: StudentStream;
+  academicYear: string;
+  curriculumType: string;
+  subject: string;
+  subjectCode?: string;
+  status: SyllabusStatus;
+  statusNote?: string;
+  sourceName: string;
+  sourceUrl: string;
+  lastVerifiedDate: string;
+  officialDocuments: OfficialSyllabusDocument[];
+  units: SyllabusSubjectUnit[];
+  prescribedBooks?: string[];
+  assessmentPattern?: AssessmentPattern;
+}
+
 export interface SyllabusTopic {
   id: string;
   board: EducationBoard;
@@ -173,3 +250,4 @@ export interface SyllabusTopic {
   topic: string;
   prerequisites: string[];
 }
+
