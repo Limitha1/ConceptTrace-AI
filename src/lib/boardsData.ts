@@ -575,6 +575,8 @@ export function normalizeBoardToOption(boardValue?: string): BoardOption {
   return EDUCATION_BOARDS.find(b => b.id === 'other_custom') || EDUCATION_BOARDS[EDUCATION_BOARDS.length - 1];
 }
 
+export const resolveBoardOption = normalizeBoardToOption;
+
 /**
  * Searches and returns boards grouped by category based on a query.
  */
@@ -618,3 +620,12 @@ export function formatBoardOptionLabel(board: BoardOption): string {
   if (board.id === 'other_custom') return 'Other / Not Listed (Enter Custom Board)';
   return `${board.name} (${board.acronym}) — ${board.stateOrRegion}`;
 }
+
+export {
+  determineCurrentAcademicYear,
+  formatAcademicYearDisplay,
+  getAcademicCalendarRule,
+  ACADEMIC_CALENDAR_RULES,
+  DEFAULT_ACADEMIC_CALENDAR_RULE
+} from './academicCalendar.ts';
+export type { AcademicCalendarRule } from './academicCalendar.ts';

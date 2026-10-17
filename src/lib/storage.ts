@@ -15,6 +15,7 @@ import type {
   ConceptDetailContent
 } from '../types/index.ts';
 import { calculateAnalyticsSummary, calculateTopicEvidence, toCalendarDateString } from './analyticsEngine.ts';
+import { determineCurrentAcademicYear } from './academicCalendar.ts';
 
 const STORAGE_KEYS = {
   USER: 'concepttrace_user',
@@ -49,7 +50,7 @@ export const defaultEducationProfile: EducationProfile = {
   classLevel: '11',
   stream: 'Science',
   curriculumType: 'NCERT / National Curriculum Framework (NCF)',
-  academicYear: '2026-27',
+  academicYear: determineCurrentAcademicYear('CBSE'),
   preferredLanguage: 'English',
   subjects: ['Physics', 'Mathematics', 'Chemistry'],
   syllabusFileName: 'CBSE_Class11_Science_Syllabus.pdf',
@@ -73,7 +74,7 @@ export const secondaryEducationProfile: EducationProfile = {
   classLevel: '11',
   stream: 'Science',
   curriculumType: 'NCERT / National Curriculum Framework (NCF)',
-  academicYear: '2026-27',
+  academicYear: determineCurrentAcademicYear('CBSE'),
   preferredLanguage: 'English',
   subjects: ['Physics', 'Mathematics', 'Chemistry'],
   syllabusFileName: 'CBSE_Class11_Science_Syllabus.pdf',
@@ -691,12 +692,23 @@ export const getStoredEducationProfile = (userId?: string): EducationProfile | n
     const targetId = userId || getStoredUser()?.id;
     if (!targetId) return null;
     const userSpecific = localStorage.getItem(`${STORAGE_KEYS.EDUCATION}_${targetId}`);
-    if (userSpecific) return JSON.parse(userSpecific);
+    if (userSpecific) {
+      profile = JSON.parse(userSpecific);
+    } else {
+      const raw = localStorage.getItem(STORAGE_KEYS.EDUCATION);
+      if (raw) {
+        const def: EducationProfile = JSON.parse(raw);
+        if (def.userId === targetId) profile = def;
+      }
+    }
 
-    const raw = localStorage.getItem(STORAGE_KEYS.EDUCATION);
-    if (raw) {
-      const def: EducationProfile = JSON.parse(raw);
-      if (def.userId === targetId) return def;
+    if (profile) {
+      // Safe migration & auto-resolve if missing
+      if (!profile.academicYear) {
+        profile.academicYear = determineCurrentAcademicYear(profile.board);
+        saveStoredEducationProfile(profile);
+      }
+      return profile;
     }
 
     return null;

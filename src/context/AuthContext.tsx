@@ -12,6 +12,7 @@ import {
   secondaryTestUser
 } from '../lib/storage';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { determineCurrentAcademicYear } from '../lib/academicCalendar';
 
 interface AuthContextType {
   user: UserProfile | null;
@@ -67,7 +68,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               classLevel: '12',
               stream: 'Science',
               curriculumType: 'NCERT / National Curriculum Framework (NCF)',
-              academicYear: '2026-27',
+              academicYear: determineCurrentAcademicYear('CBSE'),
               preferredLanguage: 'English',
               subjects: ['Physics', 'Chemistry', 'Mathematics'],
               isProfileComplete: false,
@@ -277,7 +278,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       classLevel: '11',
       stream: 'Science',
       curriculumType: 'NCERT / National Curriculum Framework (NCF)',
-      academicYear: '2026-27',
+      academicYear: determineCurrentAcademicYear('CBSE'),
       preferredLanguage: 'English',
       subjects: ['Physics', 'Mathematics', 'Chemistry'],
       isProfileComplete: false,

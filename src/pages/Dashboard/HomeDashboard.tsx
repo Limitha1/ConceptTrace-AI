@@ -39,6 +39,7 @@ import {
   getStoredPracticeAttempts
 } from '../../lib/storage';
 import { buildLearningTrajectory, calculateSubjectAccuracy } from '../../lib/analyticsEngine';
+import { formatAcademicYearDisplay } from '../../lib/academicCalendar';
 
 export const HomeDashboard: React.FC = () => {
   const { user, educationProfile } = useAuth();
@@ -118,7 +119,7 @@ export const HomeDashboard: React.FC = () => {
                 {educationProfile?.board || 'CBSE'}
               </span>
               <span className="px-2.5 py-1 rounded-lg bg-white/15 backdrop-blur-md text-[11px] font-bold border border-white/20">
-                AY {educationProfile?.academicYear || '2026-27'}
+                AY {formatAcademicYearDisplay(educationProfile?.academicYear, educationProfile?.board)}
               </span>
               <span className="px-2.5 py-1 rounded-lg bg-indigo-500/30 text-indigo-200 text-[11px] font-medium border border-indigo-400/30">
                 {educationProfile?.subjects?.join(' • ') || 'Physics • Maths • Chemistry'}

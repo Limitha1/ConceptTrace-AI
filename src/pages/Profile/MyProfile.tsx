@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   User, 
   Mail, 
@@ -21,6 +21,10 @@ import {
   validateEducationSelections 
 } from '../../lib/syllabusData';
 import { EducationBoardSelector } from '../../components/common/EducationBoardSelector';
+import { 
+  determineCurrentAcademicYear, 
+  formatAcademicYearDisplay 
+} from '../../lib/academicCalendar';
 
 export const MyProfile: React.FC = () => {
   const { user, educationProfile, updateProfile, updateEducationProfile } = useAuth();
@@ -38,7 +42,10 @@ export const MyProfile: React.FC = () => {
   const [curriculumType, setCurriculumType] = useState<string>(
     educationProfile?.curriculumType || 'NCERT / National Curriculum Framework (NCF)'
   );
-  const [academicYear, setAcademicYear] = useState<string>(educationProfile?.academicYear || '2026-27');
+  // Automatically determine the academic year based on system date and board's academic calendar
+  const academicYear = useMemo(() => {
+    return determineCurrentAcademicYear(board);
+  }, [board]);
   const [preferredLanguage, setPreferredLanguage] = useState<PreferredLanguage>(educationProfile?.preferredLanguage || 'English');
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>(
     educationProfile?.subjects || ['Physics', 'Mathematics', 'Chemistry']
@@ -228,7 +235,7 @@ export const MyProfile: React.FC = () => {
                 Class {classLevel} • {board}
               </span>
               <span className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-semibold">
-                AY {academicYear}
+                AY {formatAcademicYearDisplay(academicYear, board)}
               </span>
             </div>
           </div>
@@ -314,16 +321,12 @@ export const MyProfile: React.FC = () => {
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
                   Academic Year
                 </label>
-                <select
-                  disabled={!isEditing}
-                  value={academicYear}
-                  onChange={(e) => setAcademicYear(e.target.value)}
-                  className="w-full px-3 py-2.5 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 disabled:opacity-75 disabled:cursor-not-allowed"
-                >
-                  <option value="2026-27">2026-27</option>
-                  <option value="2025-26">2025-26</option>
-                  <option value="2024-25">2024-25</option>
-                </select>
+                <div className="w-full px-3 py-2.5 text-xs font-semibold bg-slate-100/90 border border-slate-200 rounded-xl text-slate-700 flex items-center justify-between">
+                  <span>{formatAcademicYearDisplay(academicYear, board)}</span>
+                  <span className="text-[10px] text-indigo-700 font-bold bg-indigo-50 border border-indigo-200/50 px-1.5 py-0.5 rounded">
+                    Auto-Assigned
+                  </span>
+                </div>
               </div>
             </div>
 

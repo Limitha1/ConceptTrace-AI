@@ -31,6 +31,7 @@ import type {
   SyllabusTopicItem 
 } from '../../types';
 import { fetchEnrolledSyllabi, extractCustomSyllabus } from '../../lib/syllabusService';
+import { formatAcademicYearDisplay } from '../../lib/academicCalendar';
 
 export const SyllabusPage: React.FC = () => {
   const { educationProfile } = useAuth();
@@ -277,7 +278,7 @@ export const SyllabusPage: React.FC = () => {
                 </span>
               )}
               <span className="px-2.5 py-1 rounded-full bg-white/10 text-slate-300 text-[11px] font-medium">
-                Academic Year {educationProfile?.academicYear || '2026-27'}
+                Academic Year {formatAcademicYearDisplay(educationProfile?.academicYear, educationProfile?.board)}
               </span>
             </div>
 

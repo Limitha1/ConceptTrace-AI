@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   GraduationCap, 
   BookOpen, 
-  Calendar, 
   Languages, 
   Upload, 
   CheckCircle2, 
@@ -28,6 +27,11 @@ import {
   validateEducationSelections 
 } from '../../lib/syllabusData';
 import { EducationBoardSelector } from '../../components/common/EducationBoardSelector';
+import { 
+  determineCurrentAcademicYear, 
+  formatAcademicYearDisplay, 
+  getAcademicCalendarRule 
+} from '../../lib/academicCalendar';
 
 export const EducationProfileSetup: React.FC = () => {
   const { educationProfile, updateEducationProfile } = useAuth();
@@ -43,7 +47,13 @@ export const EducationProfileSetup: React.FC = () => {
   const [curriculumType, setCurriculumType] = useState<string>(
     educationProfile?.curriculumType || 'NCERT / National Curriculum Framework (NCF)'
   );
-  const [academicYear, setAcademicYear] = useState<string>(educationProfile?.academicYear || '2026-27');
+  // Automatically determine the academic year based on system date and board academic calendar
+  const academicYear = useMemo(() => {
+    return determineCurrentAcademicYear(board);
+  }, [board]);
+  const calendarRule = useMemo(() => {
+    return getAcademicCalendarRule(board);
+  }, [board]);
   const [preferredLanguage, setPreferredLanguage] = useState<PreferredLanguage>(educationProfile?.preferredLanguage || 'English');
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>(
     educationProfile?.subjects && educationProfile.subjects.length > 0
@@ -235,20 +245,19 @@ export const EducationProfileSetup: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">
-                3. Academic Year
-              </label>
-              <div className="relative">
-                <Calendar className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                <select
-                  value={academicYear}
-                  onChange={(e) => setAcademicYear(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                >
-                  <option value="2026-27">2026-27 (Current)</option>
-                  <option value="2025-26">2025-26</option>
-                  <option value="2024-25">2024-25</option>
-                </select>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  3. Academic Year
+                </label>
+                <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200/60 px-2 py-0.5 rounded-md">
+                  Auto-Assigned
+                </span>
+              </div>
+              <div className="py-2.5 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 flex items-center justify-between">
+                <span>{formatAcademicYearDisplay(academicYear, board)}</span>
+                <span className="text-[10px] text-slate-400 font-medium tracking-wide">
+                  {calendarRule.description}
+                </span>
               </div>
             </div>
           </div>
