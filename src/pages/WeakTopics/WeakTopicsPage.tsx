@@ -17,7 +17,7 @@ import type { WeakTopicAnalysis, TopicProficiencyCategory } from '../../types';
 
 export const WeakTopicsPage: React.FC = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, educationProfile } = useAuth();
 
   const [topics, setTopics] = useState<WeakTopicAnalysis[]>(calculateWeakTopics(user?.id));
 
@@ -172,9 +172,11 @@ export const WeakTopicsPage: React.FC = () => {
             className="px-3 py-1.5 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl"
           >
             <option value="All">All Subjects</option>
-            <option value="Physics">Physics</option>
-            <option value="Mathematics">Mathematics</option>
-            <option value="Chemistry">Chemistry</option>
+            {(educationProfile?.subjects && educationProfile.subjects.length > 0 
+              ? educationProfile.subjects 
+              : ['Physics', 'Chemistry', 'Mathematics']).map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
           </select>
         </div>
       </div>

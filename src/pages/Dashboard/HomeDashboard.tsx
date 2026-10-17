@@ -40,9 +40,11 @@ import {
 } from '../../lib/storage';
 import { buildLearningTrajectory, calculateSubjectAccuracy } from '../../lib/analyticsEngine';
 import { formatAcademicYearDisplay } from '../../lib/academicCalendar';
+import { getSyllabusForSubject } from '../../lib/syllabusData';
+import { evaluateSyllabusVerification } from '../../lib/syllabusVerification';
 
 export const HomeDashboard: React.FC = () => {
-  const { user, educationProfile } = useAuth();
+  const { user, educationProfile, isLoading } = useAuth();
   const navigate = useNavigate();
 
   const [chartTimeframe, setChartTimeframe] = useState<'weekly' | 'monthly' | 'custom'>('monthly');
@@ -82,6 +84,36 @@ export const HomeDashboard: React.FC = () => {
   // Primary top weak topic needing attention
   const topWeakTopic = weakTopics.find(t => t.category === 'Needs Practice') || weakTopics[0];
 
+  // Dynamic syllabus verification status based on student's active board, class, and academic session
+  const primarySubject = educationProfile?.subjects?.[0] || 'Physics';
+  const syllabusVerification = useMemo(() => {
+    if (!educationProfile) return null;
+    const syllabus = getSyllabusForSubject(
+      educationProfile.board,
+      educationProfile.classLevel,
+      primarySubject,
+      educationProfile.stream,
+      educationProfile.academicYear
+    );
+    return evaluateSyllabusVerification(syllabus, educationProfile.academicYear);
+  }, [educationProfile, primarySubject]);
+
+  if (isLoading || (!educationProfile && user)) {
+    return (
+      <div className="space-y-6 max-w-7xl mx-auto pb-10 animate-in fade-in duration-150">
+        <div className="p-16 text-center bg-white rounded-3xl border border-slate-200/80 shadow-xs space-y-4">
+          <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto" />
+          <h2 className="text-base font-extrabold text-slate-800">
+            Loading your academic dashboard...
+          </h2>
+          <p className="text-xs text-slate-500 max-w-sm mx-auto">
+            Retrieving enrolled subjects, learning progress, and curriculum records.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-10">
       
@@ -113,17 +145,42 @@ export const HomeDashboard: React.FC = () => {
             {/* Profile Context Badges */}
             <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2 pt-1">
               <span className="px-2.5 py-1 rounded-lg bg-white/15 backdrop-blur-md text-[11px] font-bold border border-white/20">
-                Class {educationProfile?.classLevel || '11'}
+                Class {educationProfile?.classLevel || '12'}
               </span>
               <span className="px-2.5 py-1 rounded-lg bg-white/15 backdrop-blur-md text-[11px] font-bold border border-white/20">
                 {educationProfile?.board || 'CBSE'}
               </span>
+              {educationProfile?.classLevel !== '10' && educationProfile?.stream && (
+                <span className="px-2.5 py-1 rounded-lg bg-white/15 backdrop-blur-md text-[11px] font-bold border border-white/20">
+                  {educationProfile.stream} Stream
+                </span>
+              )}
               <span className="px-2.5 py-1 rounded-lg bg-white/15 backdrop-blur-md text-[11px] font-bold border border-white/20">
                 AY {formatAcademicYearDisplay(educationProfile?.academicYear, educationProfile?.board)}
               </span>
               <span className="px-2.5 py-1 rounded-lg bg-indigo-500/30 text-indigo-200 text-[11px] font-medium border border-indigo-400/30">
-                {educationProfile?.subjects?.join(' • ') || 'Physics • Maths • Chemistry'}
+                {educationProfile?.subjects?.join(' • ') || 'Physics • Chemistry • Mathematics'}
               </span>
+              {syllabusVerification && (
+                <Link
+                  to="/syllabus"
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold border backdrop-blur-md transition ${
+                    syllabusVerification.badgeType === 'verified'
+                      ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30 hover:bg-emerald-500/30'
+                      : syllabusVerification.badgeType === 'pending'
+                      ? 'bg-amber-500/25 text-amber-200 border-amber-400/40 hover:bg-amber-500/35'
+                      : 'bg-white/15 text-slate-200 border-white/25 hover:bg-white/25'
+                  }`}
+                  title={syllabusVerification.statusNote}
+                >
+                  {syllabusVerification.badgeType === 'verified' ? (
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-300 shrink-0" />
+                  ) : (
+                    <Clock className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                  )}
+                  <span>{syllabusVerification.badgeLabel}</span>
+                </Link>
+              )}
             </div>
           </div>
 
@@ -777,6 +834,25 @@ export const HomeDashboard: React.FC = () => {
                   </div>
                 </div>
                 <ArrowRight className="w-4 h-4 text-purple-400 group-hover:translate-x-1 transition-transform" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => navigate('/syllabus')}
+                className="w-full p-3 rounded-2xl bg-gradient-to-r from-indigo-50 to-purple-50 hover:from-indigo-100 hover:to-purple-100 border border-indigo-100/80 text-left transition flex items-center justify-between group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-xs">
+                    <BookOpen className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-slate-900 block group-hover:text-indigo-700">
+                      Curriculum & Syllabus
+                    </span>
+                    <span className="text-[11px] text-slate-500">Board circulars, units & chapters</span>
+                  </div>
+                </div>
+                <ArrowRight className="w-4 h-4 text-indigo-400 group-hover:translate-x-1 transition-transform" />
               </button>
 
               <button

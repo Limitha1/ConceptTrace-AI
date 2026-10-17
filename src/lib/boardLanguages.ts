@@ -758,7 +758,7 @@ export function getBoardSpecificSubjects(
       subjects.push({
         subject: lang.subjectName,
         category: lang.category,
-        isCore: lang.isPrimary,
+        isCore: false,
         isRegionalLanguage: lang.isPrimary || lang.category === 'Regional Language',
         isVerified: lang.isVerified
       });

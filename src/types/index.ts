@@ -34,7 +34,12 @@ export type TopicProficiencyCategory =
 
 export type StudentStream = 'Science' | 'Commerce' | 'Humanities/Arts' | 'General';
 
-export type SyllabusStatus = 'Verified' | 'Partially Available' | 'Unavailable';
+export type SyllabusStatus = 
+  | 'Verified' 
+  | 'Verification Pending' 
+  | 'Latest Not Confirmed' 
+  | 'Partially Available' 
+  | 'Unavailable';
 
 export interface UserProfile {
   id: string;

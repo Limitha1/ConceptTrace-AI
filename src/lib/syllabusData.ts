@@ -9,6 +9,7 @@ import {
   determineCurriculumType, 
   getBoardLanguageProfile 
 } from './boardLanguages.ts';
+import { evaluateSyllabusVerification } from './syllabusVerification.ts';
 
 export interface StreamOption {
   id: StudentStream;
@@ -66,18 +67,18 @@ export function getDefaultSubjectsForBoard(
   classLevel: ClassLevel,
   stream?: StudentStream
 ): string[] {
-  const available = getBoardSpecificSubjects(board, classLevel, stream);
   if (classLevel === '10') {
-    const coreSubjs = available.filter(s => s.isCore).map(s => s.subject);
-    if (coreSubjs.length > 0) return coreSubjs;
     return ['Mathematics', 'Science', 'Social Science', 'English Language & Literature'];
   }
-  // Class 11 and 12
-  const coreSubjs = available.filter(s => s.isCore).map(s => s.subject);
-  if (coreSubjs.length > 0) return coreSubjs;
-  if (stream === 'Commerce') return ['Accountancy', 'Business Studies', 'Economics', 'English Core'];
-  if (stream === 'Humanities/Arts') return ['History', 'Political Science', 'Economics', 'English Core'];
-  return ['Physics', 'Chemistry', 'Mathematics', 'English Core'];
+  // Class 11 and 12 - Stream Specific
+  if (stream === 'Commerce') {
+    return ['Accountancy', 'Business Studies', 'Economics'];
+  }
+  if (stream === 'Humanities/Arts') {
+    return ['History', 'Political Science', 'Economics'];
+  }
+  // Science PCM Core default
+  return ['Physics', 'Chemistry', 'Mathematics'];
 }
 
 export { determineCurriculumType, getBoardLanguageProfile };
@@ -153,7 +154,7 @@ export const AUTHENTIC_SYLLABI: SubjectSyllabus[] = [
     statusNote: 'Verified against CBSE Senior Secondary Curriculum 2024-25 & 2025-26 official circulars',
     sourceName: 'CBSE Academic Curriculum Portal',
     sourceUrl: 'https://cbseacademic.nic.in/curriculum_2025.html',
-    lastVerifiedDate: 'March 2025 (Official Session 2025-26 / 2026-27)',
+    lastVerifiedDate: 'March 22, 2024',
     assessmentPattern: {
       theoryMarks: 70,
       practicalOrInternalMarks: 30,
@@ -617,7 +618,7 @@ export const AUTHENTIC_SYLLABI: SubjectSyllabus[] = [
     statusNote: 'Verified against CBSE Senior School Curriculum (Code 043)',
     sourceName: 'CBSE Academic Curriculum Portal',
     sourceUrl: 'https://cbseacademic.nic.in/curriculum_2025.html',
-    lastVerifiedDate: 'March 2025 (Official Session 2025-26 / 2026-27)',
+    lastVerifiedDate: 'March 22, 2024',
     assessmentPattern: {
       theoryMarks: 70,
       practicalOrInternalMarks: 30,
@@ -926,7 +927,7 @@ export const AUTHENTIC_SYLLABI: SubjectSyllabus[] = [
     statusNote: 'Verified against CBSE Senior School Curriculum (Code 041)',
     sourceName: 'CBSE Academic Curriculum Portal',
     sourceUrl: 'https://cbseacademic.nic.in/curriculum_2025.html',
-    lastVerifiedDate: 'March 2025 (Official Session 2025-26 / 2026-27)',
+    lastVerifiedDate: 'March 22, 2024',
     assessmentPattern: {
       theoryMarks: 80,
       practicalOrInternalMarks: 20,
@@ -1276,7 +1277,7 @@ export const AUTHENTIC_SYLLABI: SubjectSyllabus[] = [
     statusNote: 'Verified against CBSE Secondary Curriculum (Class X Code 086)',
     sourceName: 'CBSE Academic Curriculum Portal',
     sourceUrl: 'https://cbseacademic.nic.in/curriculum_2025.html',
-    lastVerifiedDate: 'March 2025 (Official Session 2025-26 / 2026-27)',
+    lastVerifiedDate: 'March 22, 2024',
     assessmentPattern: {
       theoryMarks: 80,
       practicalOrInternalMarks: 20,
@@ -1702,7 +1703,7 @@ export const AUTHENTIC_SYLLABI: SubjectSyllabus[] = [
     statusNote: 'Verified against Karnataka School Examination and Assessment Board (KSEAB) / Pre-University Education (PUE) syllabus',
     sourceName: 'Department of Pre-University Education, Karnataka',
     sourceUrl: 'https://pue.karnataka.gov.in/',
-    lastVerifiedDate: 'March 2025',
+    lastVerifiedDate: 'June 20, 2024',
     assessmentPattern: {
       theoryMarks: 70,
       practicalOrInternalMarks: 30,
@@ -1769,7 +1770,7 @@ export const AUTHENTIC_SYLLABI: SubjectSyllabus[] = [
     statusNote: 'Verified against Karnataka School Examination and Assessment Board (KSEAB) SSLC official language curriculum',
     sourceName: 'Karnataka School Examination and Assessment Board (KSEAB)',
     sourceUrl: 'https://kseab.karnataka.gov.in/',
-    lastVerifiedDate: 'March 2025',
+    lastVerifiedDate: 'June 20, 2024',
     assessmentPattern: {
       theoryMarks: 100,
       practicalOrInternalMarks: 25,
@@ -1787,7 +1788,7 @@ export const AUTHENTIC_SYLLABI: SubjectSyllabus[] = [
         sourceType: 'Official Board',
         sourceName: 'KSEAB Directorate',
         sourceUrl: 'https://kseab.karnataka.gov.in/',
-        academicYear: '2025-26 & 2026-27'
+        academicYear: '2024-25 & 2025-26'
       }
     ],
     prescribedBooks: [
@@ -1897,7 +1898,7 @@ export const AUTHENTIC_SYLLABI: SubjectSyllabus[] = [
     statusNote: 'Verified against Directorate of Government Examinations (TNDGE) & SCERT Tamil Nadu',
     sourceName: 'Directorate of Government Examinations Tamil Nadu',
     sourceUrl: 'https://dge.tn.gov.in/',
-    lastVerifiedDate: 'March 2025',
+    lastVerifiedDate: 'July 10, 2024',
     assessmentPattern: {
       theoryMarks: 100,
       practicalOrInternalMarks: 0,
@@ -1915,7 +1916,7 @@ export const AUTHENTIC_SYLLABI: SubjectSyllabus[] = [
         sourceType: 'Official Board',
         sourceName: 'SCERT Tamil Nadu',
         sourceUrl: 'https://dge.tn.gov.in/',
-        academicYear: '2025-26 & 2026-27'
+        academicYear: '2024-25 & 2025-26'
       }
     ],
     prescribedBooks: ['Tamil Class 10 Textbook, SCERT Tamil Nadu (Samacheer Kalvi)'],
@@ -1984,7 +1985,7 @@ export const AUTHENTIC_SYLLABI: SubjectSyllabus[] = [
     statusNote: 'Verified against Kerala Board of Public Examinations (KBPE) SSLC Malayalam curriculum',
     sourceName: 'Kerala Board of Public Examinations (KBPE)',
     sourceUrl: 'https://keralapareekshabhavan.in/',
-    lastVerifiedDate: 'March 2025',
+    lastVerifiedDate: 'July 10, 2024',
     assessmentPattern: {
       theoryMarks: 80,
       practicalOrInternalMarks: 20,
@@ -2002,7 +2003,7 @@ export const AUTHENTIC_SYLLABI: SubjectSyllabus[] = [
         sourceType: 'Official Board',
         sourceName: 'SCERT Kerala',
         sourceUrl: 'https://keralapareekshabhavan.in/',
-        academicYear: '2025-26 & 2026-27'
+        academicYear: '2024-25 & 2025-26'
       }
     ],
     prescribedBooks: ['Kerala Padavali Malayalam Standard 10, SCERT Kerala'],
@@ -2071,7 +2072,7 @@ export const AUTHENTIC_SYLLABI: SubjectSyllabus[] = [
     statusNote: 'Verified against Maharashtra State Board of Secondary and Higher Secondary Education (MSBSHSE) SSC guidelines',
     sourceName: 'Maharashtra State Bureau of Textbook Production (Balbharati)',
     sourceUrl: 'https://mahahsscboard.in/',
-    lastVerifiedDate: 'March 2025',
+    lastVerifiedDate: 'July 10, 2024',
     assessmentPattern: {
       theoryMarks: 80,
       practicalOrInternalMarks: 20,
@@ -2089,7 +2090,7 @@ export const AUTHENTIC_SYLLABI: SubjectSyllabus[] = [
         sourceType: 'Official Board',
         sourceName: 'MSBSHSE Pune',
         sourceUrl: 'https://mahahsscboard.in/',
-        academicYear: '2025-26 & 2026-27'
+        academicYear: '2024-25 & 2025-26'
       }
     ],
     prescribedBooks: ['Marathi Kumarbharati Class 10, Balbharati Pune'],
@@ -2153,7 +2154,7 @@ export function getSyllabusForSubject(
   classLevel: ClassLevel,
   subject: string,
   stream?: StudentStream,
-  academicYear?: string
+  academicYear: string = '2026-27'
 ): SubjectSyllabus {
   const normSubject = subject.toLowerCase().trim();
   const normBoard = board;
@@ -2167,7 +2168,14 @@ export function getSyllabusForSubject(
   );
 
   if (exact) {
-    return exact;
+    const verification = evaluateSyllabusVerification(exact, academicYear);
+    return {
+      ...exact,
+      academicYear: academicYear || exact.academicYear,
+      status: verification.status,
+      statusNote: verification.statusNote,
+      lastVerifiedDate: verification.officialPublishedDate
+    };
   }
 
   // Cross-board standard NCERT fallback (e.g. Karnataka PUE uses same NCERT chapters as CBSE)
@@ -2178,31 +2186,41 @@ export function getSyllabusForSubject(
 
   if (ncertMatch) {
     // Return adapted copy with appropriate board badge & note
-    return {
+    const adapted: SubjectSyllabus = {
       ...ncertMatch,
       id: `${board.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${classLevel}-${subject.toLowerCase().replace(/[^a-z0-9]/g, '-')}`,
       board,
+      stream: stream || ncertMatch.stream,
       academicYear: academicYear || ncertMatch.academicYear,
-      statusNote: `Aligned with National Curriculum Framework (NCF/NCERT) adopted by ${board}. Verified against standard state curriculum guidelines.`,
-      sourceName: `${board} Academic Curriculum Portal & National Curriculum Repository`,
-      sourceUrl: ncertMatch.sourceUrl
+      curriculumType: `${board} State Adapted Curriculum`,
+      statusNote: `Standard NCERT curriculum structure adopted by ${board}. Direct official state board circular for session ${academicYear} is pending confirmation.`,
+      sourceName: `${board} Academic Directorate / NCERT Repository`,
+      sourceUrl: ncertMatch.sourceUrl,
+      officialDocuments: [] // State board does not have verified state circulars attached
+    };
+    const verification = evaluateSyllabusVerification(adapted, academicYear);
+    return {
+      ...adapted,
+      status: verification.status,
+      statusNote: verification.statusNote,
+      lastVerifiedDate: verification.officialPublishedDate
     };
   }
 
   // Generic fallback if subject is outside catalog
-  return {
-    id: `custom-${classLevel}-${subject}`,
+  const fallback: SubjectSyllabus = {
+    id: `custom-${board.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${classLevel}-${subject.toLowerCase().replace(/[^a-z0-9]/g, '-')}`,
     board,
     classLevel,
     stream: stream || 'Science',
     academicYear: academicYear || '2026-27',
-    curriculumType: 'Standard National Curriculum',
+    curriculumType: `${board} Prescribed Curriculum`,
     subject,
-    status: 'Partially Available',
-    statusNote: `Core syllabus for ${subject} under ${board} is currently being synchronized with official board circulars. You can upload your school syllabus PDF or use AI doubt solving.`,
+    status: 'Latest Not Confirmed',
+    statusNote: `Official board syllabus document for ${subject} under ${board} is not currently confirmed in the repository. Standard core curriculum topics are shown.`,
     sourceName: `${board} Academic Directorate`,
     sourceUrl: 'https://cbseacademic.nic.in',
-    lastVerifiedDate: 'Recently updated',
+    lastVerifiedDate: 'Not Confirmed',
     officialDocuments: [],
     assessmentPattern: {
       theoryMarks: 80,
@@ -2235,5 +2253,12 @@ export function getSyllabusForSubject(
         ]
       }
     ]
+  };
+  const verification = evaluateSyllabusVerification(fallback, academicYear);
+  return {
+    ...fallback,
+    status: verification.status,
+    statusNote: verification.statusNote,
+    lastVerifiedDate: verification.officialPublishedDate
   };
 }

@@ -691,6 +691,7 @@ export const getStoredEducationProfile = (userId?: string): EducationProfile | n
     if (typeof localStorage === 'undefined') return null;
     const targetId = userId || getStoredUser()?.id;
     if (!targetId) return null;
+    let profile: EducationProfile | null = null;
     const userSpecific = localStorage.getItem(`${STORAGE_KEYS.EDUCATION}_${targetId}`);
     if (userSpecific) {
       profile = JSON.parse(userSpecific);

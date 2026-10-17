@@ -32,9 +32,10 @@ import type {
 } from '../../types';
 import { fetchEnrolledSyllabi, extractCustomSyllabus } from '../../lib/syllabusService';
 import { formatAcademicYearDisplay } from '../../lib/academicCalendar';
+import { evaluateSyllabusVerification } from '../../lib/syllabusVerification';
 
 export const SyllabusPage: React.FC = () => {
-  const { educationProfile } = useAuth();
+  const { educationProfile, isLoading: isAuthLoading } = useAuth();
   const navigate = useNavigate();
 
   const [syllabi, setSyllabi] = useState<SubjectSyllabus[]>([]);
@@ -53,14 +54,18 @@ export const SyllabusPage: React.FC = () => {
   useEffect(() => {
     let mounted = true;
     const load = async () => {
-      if (!educationProfile) return;
+      if (isAuthLoading) return;
+      if (!educationProfile) {
+        setIsLoading(false);
+        return;
+      }
       setIsLoading(true);
       try {
         const data = await fetchEnrolledSyllabi(educationProfile);
         if (mounted) {
           setSyllabi(data);
           if (data.length > 0) {
-            setActiveSubject(data[0].subject);
+            setActiveSubject(prev => prev && data.some(s => s.subject.toLowerCase() === prev.toLowerCase()) ? prev : data[0].subject);
             // Default first 2 units to expanded
             const initUnits: Record<string, boolean> = {};
             data[0].units.slice(0, 2).forEach(u => {
@@ -78,12 +83,18 @@ export const SyllabusPage: React.FC = () => {
 
     load();
     return () => { mounted = false; };
-  }, [educationProfile]);
+  }, [educationProfile, isAuthLoading]);
 
   // Current active subject syllabus
   const currentSyllabus = syllabi.find(
     s => s.subject.toLowerCase() === activeSubject.toLowerCase()
   ) || syllabi[0];
+
+  // Dynamic verification evaluator based on active academic year and official documents
+  const verification = React.useMemo(() => {
+    if (!currentSyllabus) return null;
+    return evaluateSyllabusVerification(currentSyllabus, educationProfile?.academicYear);
+  }, [currentSyllabus, educationProfile?.academicYear]);
 
   // Refresh from backend
   const handleRefresh = async () => {
@@ -198,7 +209,7 @@ export const SyllabusPage: React.FC = () => {
     (acc, u) => acc + u.chapters.reduce((chAcc, ch) => chAcc + ch.topics.length, 0), 0
   ) || 0;
 
-  if (isLoading && syllabi.length === 0) {
+  if (isAuthLoading || (isLoading && syllabi.length === 0)) {
     return (
       <div className="max-w-6xl mx-auto space-y-6 pb-14 animate-in fade-in duration-200">
         <div className="p-16 text-center bg-white rounded-3xl border border-slate-200/80 shadow-xs space-y-4">
@@ -209,6 +220,58 @@ export const SyllabusPage: React.FC = () => {
           <p className="text-xs text-slate-500 max-w-sm mx-auto">
             Retrieving verified units, chapters, learning outcomes, and assessment blueprints for Class {educationProfile?.classLevel || '11'}.
           </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!educationProfile) {
+    return (
+      <div className="max-w-4xl mx-auto p-12 text-center bg-white rounded-3xl border border-slate-200/80 shadow-xs space-y-4 my-8 animate-in fade-in duration-200">
+        <div className="w-14 h-14 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center mx-auto">
+          <GraduationCap className="w-7 h-7" />
+        </div>
+        <h2 className="text-xl font-black text-slate-900">Academic Profile Setup Required</h2>
+        <p className="text-xs text-slate-500 max-w-md mx-auto">
+          Please complete your academic profile with your board, class, and enrolled subjects to view your verified curriculum.
+        </p>
+        <button
+          type="button"
+          onClick={() => navigate('/setup-profile')}
+          className="px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-md transition"
+        >
+          Set Up Academic Profile
+        </button>
+      </div>
+    );
+  }
+
+  if (!isLoading && syllabi.length === 0) {
+    return (
+      <div className="max-w-4xl mx-auto p-12 text-center bg-white rounded-3xl border border-slate-200/80 shadow-xs space-y-4 my-8 animate-in fade-in duration-200">
+        <div className="w-14 h-14 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mx-auto">
+          <AlertCircle className="w-7 h-7" />
+        </div>
+        <h2 className="text-xl font-black text-slate-900">No Syllabus Synchronized</h2>
+        <p className="text-xs text-slate-500 max-w-md mx-auto">
+          We could not load curriculum records for your enrolled subjects ({educationProfile?.subjects?.join(', ') || 'None'}).
+        </p>
+        <div className="flex items-center justify-center gap-3">
+          <button
+            type="button"
+            onClick={handleRefresh}
+            className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md transition flex items-center gap-2"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            <span>Retry Sync</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate('/profile')}
+            className="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition"
+          >
+            Edit Profile Subjects
+          </button>
         </div>
       </div>
     );
@@ -287,35 +350,65 @@ export const SyllabusPage: React.FC = () => {
             </h2>
 
             <p className="text-xs text-purple-200/80 max-w-2xl leading-relaxed">
-              {currentSyllabus?.statusNote || 'Aligned with official board curriculum documents and evaluation standards.'}
+              {verification?.statusNote || currentSyllabus?.statusNote || 'Aligned with official board curriculum documents and evaluation standards.'}
             </p>
           </div>
 
           {/* Verification Badge & Source */}
           <div className="flex flex-col sm:flex-row lg:flex-col items-start lg:items-end gap-2.5 shrink-0 pt-2 lg:pt-0 border-t border-white/10 lg:border-t-0">
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-xs font-bold">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span>{currentSyllabus?.status || 'Verified'} Official Syllabus</span>
-            </div>
+            {verification?.badgeType === 'verified' && (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-xs font-bold shadow-xs">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>{verification.badgeLabel}</span>
+              </div>
+            )}
+
+            {verification?.badgeType === 'pending' && (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/25 border border-amber-400/40 text-amber-200 text-xs font-bold shadow-xs">
+                <Clock className="w-4 h-4 text-amber-300 shrink-0" />
+                <span>{verification.badgeLabel}</span>
+              </div>
+            )}
+
+            {verification?.badgeType === 'adapted' && (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-500/20 border border-sky-400/30 text-sky-200 text-xs font-bold shadow-xs">
+                <Layers className="w-4 h-4 text-sky-300 shrink-0" />
+                <span>{verification.badgeLabel}</span>
+              </div>
+            )}
+
+            {verification?.badgeType === 'unconfirmed' && (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-500/20 border border-slate-400/30 text-slate-300 text-xs font-bold shadow-xs">
+                <AlertCircle className="w-4 h-4 text-slate-400 shrink-0" />
+                <span>{verification.badgeLabel}</span>
+              </div>
+            )}
 
             <div className="text-[11px] text-slate-300 flex items-center gap-1.5">
               <span>Source:</span>
               <a
-                href={currentSyllabus?.sourceUrl || 'https://cbseacademic.nic.in'}
+                href={verification?.sourceUrl || currentSyllabus?.sourceUrl || 'https://cbseacademic.nic.in'}
                 target="_blank"
                 rel="noreferrer"
                 className="text-purple-300 hover:text-white font-bold underline flex items-center gap-1"
               >
-                <span>{currentSyllabus?.sourceName || 'Board Academic Portal'}</span>
+                <span>{verification?.sourceName || currentSyllabus?.sourceName || 'Board Academic Portal'}</span>
                 <ExternalLink className="w-3 h-3" />
               </a>
             </div>
 
-            {currentSyllabus?.lastVerifiedDate && (
-              <span className="text-[10px] text-slate-400">
-                Verified: {currentSyllabus.lastVerifiedDate}
-              </span>
-            )}
+            <div className="flex flex-col items-start lg:items-end text-[10px] text-slate-300/80 space-y-0.5">
+              {verification?.applicableSession && (
+                <span>
+                  Curriculum Document: <strong className="text-white">{verification.applicableSession}</strong>
+                </span>
+              )}
+              {verification?.officialPublishedDate && verification.officialPublishedDate !== 'Not Confirmed' && (
+                <span>
+                  Published / Checked: <strong className="text-white">{verification.officialPublishedDate}</strong>
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
@@ -437,11 +530,11 @@ export const SyllabusPage: React.FC = () => {
             <div className="flex items-center gap-2">
               <FileText className="w-4 h-4 text-purple-700" />
               <h3 className="text-xs font-black uppercase tracking-wider text-purple-900">
-                Official Board Syllabus PDF & Circulars
+                Official Board Curriculum Documents on Record
               </h3>
             </div>
             <span className="text-[11px] text-purple-600 font-bold">
-              {currentSyllabus.officialDocuments.length} Verified Document{currentSyllabus.officialDocuments.length > 1 ? 's' : ''}
+              {currentSyllabus.officialDocuments.length} Board Document{currentSyllabus.officialDocuments.length > 1 ? 's' : ''} on File
             </span>
           </div>
 
@@ -458,8 +551,8 @@ export const SyllabusPage: React.FC = () => {
                   <div className="text-xs font-extrabold text-slate-900 group-hover:text-purple-700 transition">
                     {doc.title}
                   </div>
-                  <div className="text-[11px] text-slate-400">
-                    {doc.sourceName} • {doc.fileSize || 'Official PDF'} • {doc.academicYear}
+                  <div className="text-[11px] text-slate-500">
+                    {doc.sourceName} • {doc.fileSize || 'Official PDF'} • <span className="font-semibold text-purple-700">Applicable Session: {doc.academicYear}</span>
                   </div>
                 </div>
 

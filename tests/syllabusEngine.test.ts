@@ -65,11 +65,12 @@ describe('ConceptTrace AI Dynamic Syllabus Engine — Unit & Regression Tests', 
   });
 
   it('4. CBSE Class 12 Physics returns authentic official units, chapters, and document links', () => {
+    // Current academic session (2026-27) circular is pending board release; engine truthfully marks Verification Pending
     const phy = getSyllabusForSubject('CBSE', '12', 'Physics', 'Science', '2026-27');
 
     assert.strictEqual(phy.subject, 'Physics');
     assert.strictEqual(phy.subjectCode, '042');
-    assert.strictEqual(phy.status, 'Verified');
+    assert.strictEqual(phy.status, 'Verification Pending');
     assert.strictEqual(phy.assessmentPattern?.theoryMarks, 70);
     assert.strictEqual(phy.assessmentPattern?.practicalOrInternalMarks, 30);
     assert.ok(phy.officialDocuments.length > 0, 'Official syllabus PDF documents must exist');
@@ -87,12 +88,16 @@ describe('ConceptTrace AI Dynamic Syllabus Engine — Unit & Regression Tests', 
     assert.ok(unitOptics, 'Unit VI Optics must exist');
     assert.ok(unitOptics.chapters.some(ch => ch.title === 'Ray Optics and Optical Instruments'));
     assert.ok(unitOptics.chapters.some(ch => ch.title === 'Wave Optics'));
+
+    // Historical session (2024-25) matches the circular on record and evaluates to Verified
+    const histPhy = getSyllabusForSubject('CBSE', '12', 'Physics', 'Science', '2024-25');
+    assert.strictEqual(histPhy.status, 'Verified');
   });
 
   it('5. CBSE Class 12 Chemistry returns authentic Solutions, Kinetics, Coordination, and Organic chapters', () => {
     const chem = getSyllabusForSubject('CBSE', '12', 'Chemistry', 'Science', '2026-27');
 
-    assert.strictEqual(chem.status, 'Verified');
+    assert.strictEqual(chem.status, 'Verification Pending');
     assert.strictEqual(chem.subjectCode, '043');
     
     const allChapters = chem.units.flatMap(u => u.chapters.map(ch => ch.title));
@@ -104,12 +109,16 @@ describe('ConceptTrace AI Dynamic Syllabus Engine — Unit & Regression Tests', 
     assert.ok(allChapters.includes('Haloalkanes and Haloarenes'));
     assert.ok(allChapters.includes('Aldehydes, Ketones and Carboxylic Acids'));
     assert.ok(allChapters.includes('Biomolecules'));
+
+    // Historical session verification
+    const histChem = getSyllabusForSubject('CBSE', '12', 'Chemistry', 'Science', '2024-25');
+    assert.strictEqual(histChem.status, 'Verified');
   });
 
   it('6. CBSE Class 10 Science returns authentic integrated Physics, Chemistry, and Biology units', () => {
     const sci = getSyllabusForSubject('CBSE', '10', 'Science', 'General', '2026-27');
 
-    assert.strictEqual(sci.status, 'Verified');
+    assert.strictEqual(sci.status, 'Verification Pending');
     assert.strictEqual(sci.assessmentPattern?.theoryMarks, 80);
     assert.strictEqual(sci.assessmentPattern?.practicalOrInternalMarks, 20);
 
@@ -119,13 +128,20 @@ describe('ConceptTrace AI Dynamic Syllabus Engine — Unit & Regression Tests', 
     assert.ok(allChapters.includes('Light - Reflection and Refraction'));
     assert.ok(allChapters.includes('Electricity'));
     assert.ok(allChapters.includes('Our Environment'));
+
+    // Historical session verification
+    const histSci = getSyllabusForSubject('CBSE', '10', 'Science', 'General', '2024-25');
+    assert.strictEqual(histSci.status, 'Verified');
   });
 
   it('7. Cross-board adaptation provides NCERT-aligned state board curricula with appropriate source tags', () => {
     const karPhy = getSyllabusForSubject('Karnataka State Board', '12', 'Physics', 'Science', '2026-27');
     assert.strictEqual(karPhy.board, 'Karnataka State Board');
-    assert.ok(karPhy.status === 'Verified');
+    assert.strictEqual(karPhy.status, 'Verification Pending');
     assert.ok(karPhy.units.length > 0);
+
+    const histKarPhy = getSyllabusForSubject('Karnataka State Board', '12', 'Physics', 'Science', '2024-25');
+    assert.strictEqual(histKarPhy.status, 'Verified');
   });
 
   it('8. Server API handleSyllabusApi responds with 200 OK for GET /api/syllabus/catalog', async () => {

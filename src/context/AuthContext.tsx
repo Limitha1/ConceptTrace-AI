@@ -312,8 +312,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateEducationProfile = (updated: Partial<EducationProfile>) => {
-    if (!educationProfile) return;
-    const merged = { ...educationProfile, ...updated, updatedAt: new Date().toISOString() };
+    const base = educationProfile || (user ? {
+      userId: user.id,
+      board: 'CBSE' as const,
+      classLevel: '12' as const,
+      stream: 'Science' as const,
+      curriculumType: 'NCERT / National Curriculum Framework (NCF)',
+      academicYear: determineCurrentAcademicYear('CBSE'),
+      preferredLanguage: 'English' as const,
+      subjects: ['Physics', 'Chemistry', 'Mathematics'],
+      isProfileComplete: true,
+      updatedAt: new Date().toISOString()
+    } : null);
+
+    if (!base) return;
+    const merged = { ...base, ...updated, updatedAt: new Date().toISOString() };
     setEducationProfile(merged);
     saveStoredEducationProfile(merged);
   };
@@ -352,7 +365,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const isFirstTimeUser = Boolean(user && educationProfile && !educationProfile.isProfileComplete);
+  const isFirstTimeUser = Boolean(user && (!educationProfile || !educationProfile.isProfileComplete));
 
   return (
     <AuthContext.Provider

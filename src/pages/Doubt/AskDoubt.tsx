@@ -488,10 +488,11 @@ export const AskDoubt: React.FC = () => {
               onChange={(e) => setSubject(e.target.value)}
               className="w-full px-3 py-2 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
             >
-              <option value="Physics">Physics</option>
-              <option value="Mathematics">Mathematics</option>
-              <option value="Chemistry">Chemistry</option>
-              <option value="Biology">Biology</option>
+              {(educationProfile?.subjects && educationProfile.subjects.length > 0 
+                ? educationProfile.subjects 
+                : ['Physics', 'Chemistry', 'Mathematics']).map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
             </select>
           </div>
 
