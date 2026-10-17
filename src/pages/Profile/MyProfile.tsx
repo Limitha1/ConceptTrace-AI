@@ -20,6 +20,7 @@ import {
   getAvailableSubjects, 
   validateEducationSelections 
 } from '../../lib/syllabusData';
+import { EducationBoardSelector } from '../../components/common/EducationBoardSelector';
 
 export const MyProfile: React.FC = () => {
   const { user, educationProfile, updateProfile, updateEducationProfile } = useAuth();
@@ -49,14 +50,6 @@ export const MyProfile: React.FC = () => {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const availableBoards: EducationBoard[] = [
-    'CBSE',
-    'CISCE (ICSE/ISC)',
-    'Karnataka State Board',
-    'Other State/UT Board',
-    'NIOS',
-    'Other'
-  ];
 
   const availableSubjectsList = getAvailableSubjects(board, classLevel, stream);
 
@@ -286,23 +279,18 @@ export const MyProfile: React.FC = () => {
               </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                Education Board
-              </label>
-              <div className="relative">
-                <GraduationCap className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                <select
-                  disabled={!isEditing}
-                  value={board}
-                  onChange={(e) => setBoard(e.target.value as EducationBoard)}
-                  className="w-full pl-10 pr-4 py-2.5 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 disabled:opacity-75 disabled:cursor-not-allowed"
-                >
-                  {availableBoards.map(b => (
-                    <option key={b} value={b}>{b}</option>
-                  ))}
-                </select>
-              </div>
+            <div className="sm:col-span-2">
+              <EducationBoardSelector
+                disabled={!isEditing}
+                label="Education Board"
+                value={board}
+                onChange={(selectedBoardValue, boardOption) => {
+                  setBoard(selectedBoardValue);
+                  if (boardOption.curriculumTypeDescription) {
+                    setCurriculumType(boardOption.curriculumTypeDescription);
+                  }
+                }}
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-2">

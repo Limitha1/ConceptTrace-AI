@@ -1,10 +1,13 @@
 export type EducationBoard = 
   | 'CBSE' 
   | 'CISCE (ICSE/ISC)' 
+  | 'CISCE'
   | 'Karnataka State Board' 
+  | 'KSEAB'
   | 'Other State/UT Board' 
   | 'NIOS' 
-  | 'Other';
+  | 'Other'
+  | string;
 
 export type Subject = 'Physics' | 'Mathematics' | 'Chemistry' | 'Biology' | string;
 

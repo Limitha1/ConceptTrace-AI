@@ -55,6 +55,10 @@ import {
   CURATED_CONCEPTS 
 } from '../../lib/conceptLibraryData';
 import { 
+  EDUCATION_BOARDS, 
+  BOARD_CATEGORIES 
+} from '../../lib/boardsData';
+import { 
   getConceptBookmarks, 
   saveConceptBookmark, 
   removeConceptBookmark, 
@@ -579,12 +583,19 @@ export const ConceptLibraryPage: React.FC = () => {
               onChange={(e) => setSelectedBoard(e.target.value as EducationBoard)}
               className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-400"
             >
-              <option value="CBSE">CBSE (All India)</option>
-              <option value="CISCE">CISCE / ISC / ICSE</option>
-              <option value="Karnataka State Board">Karnataka State Board</option>
-              <option value="Maharashtra State Board">Maharashtra State Board</option>
-              <option value="Tamil Nadu State Board">Tamil Nadu State Board</option>
-              <option value="UP Board">UP Board</option>
+              {BOARD_CATEGORIES.map(cat => {
+                const bds = EDUCATION_BOARDS.filter(b => b.category === cat);
+                if (bds.length === 0) return null;
+                return (
+                  <optgroup key={cat} label={cat}>
+                    {bds.map(b => (
+                      <option key={b.id} value={b.acronym || b.name}>
+                        {b.acronym} — {b.name} ({b.stateOrRegion})
+                      </option>
+                    ))}
+                  </optgroup>
+                );
+              })}
             </select>
           </div>
 

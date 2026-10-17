@@ -27,6 +27,7 @@ import {
   getAvailableSubjects, 
   validateEducationSelections 
 } from '../../lib/syllabusData';
+import { EducationBoardSelector } from '../../components/common/EducationBoardSelector';
 
 export const EducationProfileSetup: React.FC = () => {
   const { educationProfile, updateEducationProfile } = useAuth();
@@ -53,14 +54,6 @@ export const EducationProfileSetup: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const availableBoards: EducationBoard[] = [
-    'CBSE',
-    'CISCE (ICSE/ISC)',
-    'Karnataka State Board',
-    'Other State/UT Board',
-    'NIOS',
-    'Other'
-  ];
 
   const availableClasses: ClassLevel[] = ['10', '11', '12'];
 
@@ -206,29 +199,16 @@ export const EducationProfileSetup: React.FC = () => {
 
         <form onSubmit={handleSaveAndContinue} className="space-y-6">
           
-          {/* 1. Education Board */}
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">
-              1. Education Board
-            </label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-              {availableBoards.map((b) => (
-                <button
-                  key={b}
-                  type="button"
-                  onClick={() => setBoard(b)}
-                  className={`py-2.5 px-3 rounded-xl text-xs font-semibold border text-left transition flex items-center justify-between ${
-                    board === b
-                      ? 'border-indigo-600 bg-indigo-50/80 text-indigo-900 ring-2 ring-indigo-500/20'
-                      : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700'
-                  }`}
-                >
-                  <span className="truncate">{b}</span>
-                  {board === b && <CheckCircle2 className="w-3.5 h-3.5 text-indigo-600 shrink-0" />}
-                </button>
-              ))}
-            </div>
-          </div>
+          {/* 1. Education Board (Searchable Dropdown for All 28 States, 8 UTs & National Boards) */}
+          <EducationBoardSelector
+            value={board}
+            onChange={(selectedBoardValue, boardOption) => {
+              setBoard(selectedBoardValue);
+              if (boardOption.curriculumTypeDescription) {
+                setCurriculumType(boardOption.curriculumTypeDescription);
+              }
+            }}
+          />
 
           {/* 2. Class Level & Academic Year */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
