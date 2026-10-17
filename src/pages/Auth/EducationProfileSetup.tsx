@@ -10,8 +10,10 @@ import {
   FileText,
   AlertCircle,
   Compass,
-  Layers,
-  Info
+  Info,
+  Plus,
+  X,
+  Sparkles
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import type { 
@@ -22,7 +24,6 @@ import type {
 } from '../../types';
 import { 
   STREAM_OPTIONS, 
-  CURRICULUM_TYPES, 
   getAvailableSubjects, 
   validateEducationSelections 
 } from '../../lib/syllabusData';
@@ -32,6 +33,11 @@ import {
   formatAcademicYearDisplay, 
   getAcademicCalendarRule 
 } from '../../lib/academicCalendar';
+import { 
+  determineCurriculumType, 
+  getBoardLanguageProfile, 
+  getDefaultSubjectsForBoard 
+} from '../../lib/boardLanguages';
 
 export const EducationProfileSetup: React.FC = () => {
   const { educationProfile, updateEducationProfile } = useAuth();
@@ -44,9 +50,12 @@ export const EducationProfileSetup: React.FC = () => {
       ? 'General' 
       : (educationProfile?.stream || 'Science')
   );
-  const [curriculumType, setCurriculumType] = useState<string>(
-    educationProfile?.curriculumType || 'NCERT / National Curriculum Framework (NCF)'
-  );
+
+  // Automatically determine curriculum framework based on the selected education board
+  const curriculumType = useMemo(() => {
+    return determineCurriculumType(board);
+  }, [board]);
+
   // Automatically determine the academic year based on system date and board academic calendar
   const academicYear = useMemo(() => {
     return determineCurrentAcademicYear(board);
@@ -54,16 +63,26 @@ export const EducationProfileSetup: React.FC = () => {
   const calendarRule = useMemo(() => {
     return getAcademicCalendarRule(board);
   }, [board]);
+  const boardLanguageProfile = useMemo(() => {
+    return getBoardLanguageProfile(board);
+  }, [board]);
+
   const [preferredLanguage, setPreferredLanguage] = useState<PreferredLanguage>(educationProfile?.preferredLanguage || 'English');
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>(
     educationProfile?.subjects && educationProfile.subjects.length > 0
       ? educationProfile.subjects
-      : ['Physics', 'Mathematics', 'Chemistry']
+      : getDefaultSubjectsForBoard(educationProfile?.board || 'CBSE', educationProfile?.classLevel || '11', educationProfile?.stream || 'Science')
   );
   const [syllabusFile, setSyllabusFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Elective subject inline addition state
+  const [showAddElective, setShowAddElective] = useState(false);
+  const [electiveInput, setElectiveInput] = useState('');
+
+  // Notification when user changes board to review subjects
+  const [boardReviewNotice, setBoardReviewNotice] = useState<string | null>(null);
 
   const availableClasses: ClassLevel[] = ['10', '11', '12'];
 
@@ -78,28 +97,74 @@ export const EducationProfileSetup: React.FC = () => {
   ];
 
   // Dynamic available subjects based on current board, class, and stream
-  const availableSubjectOptions = getAvailableSubjects(board, classLevel, stream);
+  const availableSubjectOptions = useMemo(() => {
+    return getAvailableSubjects(board, classLevel, stream);
+  }, [board, classLevel, stream]);
 
-  // When class changes, adjust stream
+  // When board changes, check for subject compatibility and notify student without silent deletion
+  const handleBoardChange = (newBoard: EducationBoard) => {
+    setBoard(newBoard);
+    const newAvailable = getAvailableSubjects(newBoard, classLevel, stream);
+    const newSubjectNames = newAvailable.map(s => s.subject.toLowerCase());
+    const incompatible = selectedSubjects.filter(
+      s => !newSubjectNames.some(avail => avail.includes(s.toLowerCase()) || s.toLowerCase().includes(avail))
+    );
+
+    const newLangProf = getBoardLanguageProfile(newBoard);
+    const primaryLang = newLangProf.primaryLanguages[0];
+
+    if (incompatible.length > 0) {
+      setBoardReviewNotice(
+        `You previously selected: ${incompatible.join(', ')}. Please review your enrolled subjects for ${newBoard}${primaryLang ? ` (e.g., consider selecting ${primaryLang})` : ''}.`
+      );
+    } else {
+      setBoardReviewNotice(null);
+    }
+  };
+
+  // When class changes, adjust stream and default subjects
   const handleClassChange = (newClass: ClassLevel) => {
     setClassLevel(newClass);
     if (newClass === '10') {
       setStream('General');
-      // Set default Class 10 subjects
-      setSelectedSubjects(['Mathematics', 'Science', 'Social Science', 'English Language & Literature']);
+      setSelectedSubjects(getDefaultSubjectsForBoard(board, '10', 'General'));
     } else {
       const newStream = stream === 'General' ? 'Science' : stream;
       setStream(newStream);
-      const defaultSubjs = STREAM_OPTIONS.find(s => s.id === newStream)?.defaultSubjects || ['Physics', 'Chemistry', 'Mathematics'];
-      setSelectedSubjects(defaultSubjs);
+      setSelectedSubjects(getDefaultSubjectsForBoard(board, newClass, newStream));
     }
+    setBoardReviewNotice(null);
   };
 
   // When stream changes for Class 11/12
   const handleStreamChange = (newStream: StudentStream) => {
     setStream(newStream);
-    const defaults = STREAM_OPTIONS.find(s => s.id === newStream)?.defaultSubjects || ['Physics', 'Chemistry', 'Mathematics'];
-    setSelectedSubjects(defaults);
+    setSelectedSubjects(getDefaultSubjectsForBoard(board, classLevel, newStream));
+    setBoardReviewNotice(null);
+  };
+
+  // Add custom elective subject
+  const handleAddElective = () => {
+    const trimmed = electiveInput.trim();
+    if (!trimmed) return;
+    if (selectedSubjects.some(s => s.toLowerCase() === trimmed.toLowerCase())) {
+      setError(`"${trimmed}" is already selected.`);
+      return;
+    }
+    setSelectedSubjects(prev => [...prev, trimmed]);
+    setElectiveInput('');
+    setShowAddElective(false);
+    setError(null);
+  };
+
+  // Remove custom elective subject
+  const handleRemoveCustomSubject = (subj: string) => {
+    if (selectedSubjects.length === 1) {
+      setError('Please keep at least one subject selected.');
+      return;
+    }
+    setSelectedSubjects(prev => prev.filter(s => s !== subj));
+    setError(null);
   };
 
   // Validate current selections
@@ -212,11 +277,8 @@ export const EducationProfileSetup: React.FC = () => {
           {/* 1. Education Board (Searchable Dropdown for All 28 States, 8 UTs & National Boards) */}
           <EducationBoardSelector
             value={board}
-            onChange={(selectedBoardValue, boardOption) => {
-              setBoard(selectedBoardValue);
-              if (boardOption.curriculumTypeDescription) {
-                setCurriculumType(boardOption.curriculumTypeDescription);
-              }
+            onChange={(selectedBoardValue) => {
+              handleBoardChange(selectedBoardValue as EducationBoard);
             }}
           />
 
@@ -308,35 +370,36 @@ export const EducationProfileSetup: React.FC = () => {
             )}
           </div>
 
-          {/* 4. Curriculum / Syllabus Framework */}
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">
-              5. Curriculum Framework / Syllabus Type
-            </label>
-            <div className="relative">
-              <Layers className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <select
-                value={curriculumType}
-                onChange={(e) => setCurriculumType(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-              >
-                {CURRICULUM_TYPES.map((ct) => (
-                  <option key={ct} value={ct}>{ct}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* 5. Subjects Multi-select (dynamically filtered) */}
+          {/* 4. Enrolled Subjects (Board-Specific Regional Languages & Core Curriculum) */}
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                6. Enrolled Subjects
+                5. Enrolled Subjects
               </label>
-              <span className="text-[11px] text-slate-400">
-                Filtered for Class {classLevel} {classLevel !== '10' ? `(${stream})` : ''}
+              <span className="text-[11px] text-slate-500 font-medium">
+                {selectedSubjects.length} selected • Filtered for Class {classLevel} {classLevel !== '10' ? `(${stream})` : ''}
               </span>
             </div>
+
+            {/* Board change compatibility review notice */}
+            {boardReviewNotice && (
+              <div className="mb-3 p-3 rounded-2xl bg-amber-50/90 border border-amber-200 text-xs text-amber-800 flex items-start gap-2.5 animate-in fade-in duration-200">
+                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <span className="font-bold">Review Subjects for {board}:</span>
+                  <p className="mt-0.5 text-amber-700 leading-relaxed">
+                    {boardReviewNotice}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setBoardReviewNotice(null)}
+                  className="text-amber-500 hover:text-amber-700 font-bold ml-1"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
             
             <div className="flex flex-wrap gap-2">
               {availableSubjectOptions.map((subjObj) => {
@@ -348,13 +411,18 @@ export const EducationProfileSetup: React.FC = () => {
                     onClick={() => toggleSubject(subjObj.subject)}
                     className={`py-2 px-3.5 rounded-xl text-xs font-semibold border transition flex items-center gap-2 ${
                       isSelected
-                        ? 'bg-purple-50 border-purple-300 text-purple-900 ring-1 ring-purple-400/30'
+                        ? 'bg-purple-50 border-purple-300 text-purple-900 ring-1 ring-purple-400/30 shadow-sm'
                         : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
                     }`}
                   >
                     <BookOpen className={`w-3.5 h-3.5 ${isSelected ? 'text-purple-600' : 'text-slate-400'}`} />
                     <span>{subjObj.subject}</span>
-                    {subjObj.isCore && !isSelected && (
+                    {subjObj.isRegionalLanguage && (
+                      <span className="text-[9px] uppercase font-bold text-indigo-700 bg-indigo-100/70 border border-indigo-200/60 px-1.5 py-0.5 rounded-md">
+                        Regional Language
+                      </span>
+                    )}
+                    {subjObj.isCore && !subjObj.isRegionalLanguage && !isSelected && (
                       <span className="text-[9px] uppercase font-bold text-slate-400 bg-slate-200/60 px-1 py-0.2 rounded">
                         Core
                       </span>
@@ -363,13 +431,82 @@ export const EducationProfileSetup: React.FC = () => {
                   </button>
                 );
               })}
+
+              {/* Any additional user-added custom/elective subjects */}
+              {selectedSubjects
+                .filter(s => !availableSubjectOptions.some(avail => avail.subject === s))
+                .map((customSubj) => (
+                  <div
+                    key={customSubj}
+                    className="py-2 px-3.5 rounded-xl text-xs font-semibold border bg-purple-50 border-purple-300 text-purple-900 ring-1 ring-purple-400/30 flex items-center gap-2 shadow-sm"
+                  >
+                    <BookOpen className="w-3.5 h-3.5 text-purple-600" />
+                    <span>{customSubj}</span>
+                    <span className="text-[9px] uppercase font-bold text-purple-700 bg-purple-100 px-1.5 py-0.5 rounded">
+                      Elective
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveCustomSubject(customSubj)}
+                      className="text-purple-400 hover:text-rose-600 font-bold ml-0.5"
+                      title="Remove subject"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+            </div>
+
+            {/* Add Elective / Other Supported Subject */}
+            <div className="mt-3">
+              {showAddElective ? (
+                <div className="flex flex-wrap items-center gap-2 p-2.5 bg-slate-50 border border-slate-200 rounded-2xl animate-in fade-in duration-150">
+                  <input
+                    type="text"
+                    value={electiveInput}
+                    onChange={(e) => setElectiveInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddElective();
+                      }
+                    }}
+                    placeholder="Enter subject or language (e.g. Sanskrit, French, Psychology)..."
+                    className="flex-1 min-w-[200px] px-3 py-1.5 text-xs bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
+                    autoFocus
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddElective}
+                    className="px-3.5 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition shadow-sm"
+                  >
+                    Add Subject
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setShowAddElective(false); setElectiveInput(''); }}
+                    className="px-2.5 py-1.5 text-slate-500 hover:text-slate-700 text-xs font-medium"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowAddElective(true)}
+                  className="inline-flex items-center gap-1.5 py-1.5 px-3 rounded-xl text-xs font-semibold border border-dashed border-slate-300 text-slate-600 hover:border-purple-400 hover:text-purple-700 hover:bg-purple-50/50 transition"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add Elective / Other Subject</span>
+                </button>
+              )}
             </div>
           </div>
 
-          {/* 6. Preferred Explanation Language */}
+          {/* 5. Preferred Explanation Language */}
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">
-              7. Preferred Explanation Language
+              6. Preferred Explanation Language
             </label>
             <div className="relative">
               <Languages className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -388,10 +525,10 @@ export const EducationProfileSetup: React.FC = () => {
             </p>
           </div>
 
-          {/* 7. Optional Syllabus PDF Upload */}
+          {/* 6. Optional Syllabus PDF Upload */}
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">
-              8. Optional Syllabus Document / PDF Upload
+              7. Optional Syllabus Document / PDF Upload
             </label>
             <label className="border-2 border-dashed border-slate-200 hover:border-indigo-400 rounded-2xl p-5 flex flex-col items-center justify-center cursor-pointer transition bg-slate-50/50 hover:bg-indigo-50/30">
               <Upload className="w-6 h-6 text-indigo-500 mb-2" />

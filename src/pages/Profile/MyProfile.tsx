@@ -9,14 +9,16 @@ import {
   Save, 
   Camera, 
   Shield, 
-  Clock 
+  Clock,
+  Plus,
+  X,
+  AlertCircle
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import type { EducationBoard, ClassLevel, PreferredLanguage, StudentStream } from '../../types';
 import { 
   STREAM_OPTIONS, 
-  CURRICULUM_TYPES, 
   getAvailableSubjects, 
   validateEducationSelections 
 } from '../../lib/syllabusData';
@@ -25,6 +27,11 @@ import {
   determineCurrentAcademicYear, 
   formatAcademicYearDisplay 
 } from '../../lib/academicCalendar';
+import {
+  getBoardLanguageProfile,
+  determineCurriculumType,
+  getDefaultSubjectsForBoard
+} from '../../lib/boardLanguages';
 
 export const MyProfile: React.FC = () => {
   const { user, educationProfile, updateProfile, updateEducationProfile } = useAuth();
@@ -39,9 +46,12 @@ export const MyProfile: React.FC = () => {
       ? 'General' 
       : (educationProfile?.stream || 'Science')
   );
-  const [curriculumType, setCurriculumType] = useState<string>(
-    educationProfile?.curriculumType || 'NCERT / National Curriculum Framework (NCF)'
-  );
+
+  // Automatically determine curriculum framework internally based on board
+  const curriculumType = useMemo(() => {
+    return determineCurriculumType(board);
+  }, [board]);
+
   // Automatically determine the academic year based on system date and board's academic calendar
   const academicYear = useMemo(() => {
     return determineCurrentAcademicYear(board);
@@ -54,29 +64,76 @@ export const MyProfile: React.FC = () => {
     user?.avatarUrl && !user.avatarUrl.includes('student_avatar') ? user.avatarUrl : '/assets/robot_avatar.jpg'
   );
 
+  const [boardReviewNotice, setBoardReviewNotice] = useState<string | null>(null);
+  const [showAddElective, setShowAddElective] = useState(false);
+  const [electiveInput, setElectiveInput] = useState('');
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const availableSubjectsList = useMemo(() => {
+    return getAvailableSubjects(board, classLevel, stream);
+  }, [board, classLevel, stream]);
 
-  const availableSubjectsList = getAvailableSubjects(board, classLevel, stream);
+  // When board changes, check for subject compatibility and notify student without silent deletion
+  const handleBoardChange = (newBoard: EducationBoard) => {
+    setBoard(newBoard);
+    const newAvailable = getAvailableSubjects(newBoard, classLevel, stream);
+    const newSubjectNames = newAvailable.map(s => s.subject.toLowerCase());
+    const incompatible = selectedSubjects.filter(
+      s => !newSubjectNames.some(avail => avail.includes(s.toLowerCase()) || s.toLowerCase().includes(avail))
+    );
+
+    const newLangProf = getBoardLanguageProfile(newBoard);
+    const primaryLang = newLangProf.primaryLanguages[0];
+
+    if (incompatible.length > 0) {
+      setBoardReviewNotice(
+        `You previously selected: ${incompatible.join(', ')}. Please review your enrolled subjects for ${newBoard}${primaryLang ? ` (e.g., consider selecting ${primaryLang})` : ''}.`
+      );
+    } else {
+      setBoardReviewNotice(null);
+    }
+  };
 
   const handleClassChange = (newClass: ClassLevel) => {
     setClassLevel(newClass);
     if (newClass === '10') {
       setStream('General');
-      setSelectedSubjects(['Mathematics', 'Science', 'Social Science', 'English Language & Literature']);
+      setSelectedSubjects(getDefaultSubjectsForBoard(board, '10', 'General'));
     } else {
       const activeStream = stream === 'General' ? 'Science' : stream;
       setStream(activeStream);
-      const defaults = STREAM_OPTIONS.find(s => s.id === activeStream)?.defaultSubjects || ['Physics', 'Chemistry', 'Mathematics'];
-      setSelectedSubjects(defaults);
+      setSelectedSubjects(getDefaultSubjectsForBoard(board, newClass, activeStream));
     }
+    setBoardReviewNotice(null);
   };
 
   const handleStreamChange = (newStream: StudentStream) => {
     setStream(newStream);
-    const defaults = STREAM_OPTIONS.find(s => s.id === newStream)?.defaultSubjects || ['Physics', 'Chemistry', 'Mathematics'];
-    setSelectedSubjects(defaults);
+    setSelectedSubjects(getDefaultSubjectsForBoard(board, classLevel, newStream));
+    setBoardReviewNotice(null);
+  };
+
+  const handleAddElective = () => {
+    const trimmed = electiveInput.trim();
+    if (!trimmed) return;
+    if (selectedSubjects.some(s => s.toLowerCase() === trimmed.toLowerCase())) {
+      setError(`"${trimmed}" is already selected.`);
+      return;
+    }
+    setSelectedSubjects(prev => [...prev, trimmed]);
+    setElectiveInput('');
+    setShowAddElective(false);
+    setError(null);
+  };
+
+  const handleRemoveCustomSubject = (subjName: string) => {
+    if (!isEditing) return;
+    if (selectedSubjects.length <= 1) {
+      setError('You must be enrolled in at least one subject.');
+      return;
+    }
+    setSelectedSubjects(prev => prev.filter(s => s !== subjName));
   };
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -137,6 +194,7 @@ export const MyProfile: React.FC = () => {
     });
 
     setIsEditing(false);
+    setBoardReviewNotice(null);
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 3500);
   };
@@ -291,11 +349,8 @@ export const MyProfile: React.FC = () => {
                 disabled={!isEditing}
                 label="Education Board"
                 value={board}
-                onChange={(selectedBoardValue, boardOption) => {
-                  setBoard(selectedBoardValue);
-                  if (boardOption.curriculumTypeDescription) {
-                    setCurriculumType(boardOption.curriculumTypeDescription);
-                  }
+                onChange={(selectedBoardValue) => {
+                  handleBoardChange(selectedBoardValue);
                 }}
               />
             </div>
@@ -336,8 +391,8 @@ export const MyProfile: React.FC = () => {
                 Academic Stream
               </label>
               {classLevel === '10' ? (
-                <div className="py-2 px-3 bg-slate-100 rounded-xl text-slate-600 text-xs font-medium">
-                  General Foundation Curriculum (Classes 11–12 have Science, Commerce, Arts)
+                <div className="py-2.5 px-3 bg-slate-100/80 border border-slate-200 rounded-xl text-slate-600 text-xs font-medium">
+                  General Core Curriculum (Class 10 foundational)
                 </div>
               ) : (
                 <select
@@ -353,52 +408,41 @@ export const MyProfile: React.FC = () => {
               )}
             </div>
 
-            {/* Curriculum Framework */}
-            <div>
+            {/* Preferred Explanation Language */}
+            <div className="sm:col-span-2">
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                Curriculum Framework / Syllabus Type
+                Preferred Explanation Language
               </label>
-              <select
-                disabled={!isEditing}
-                value={curriculumType}
-                onChange={(e) => setCurriculumType(e.target.value)}
-                className="w-full px-3 py-2.5 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 disabled:opacity-75 disabled:cursor-not-allowed"
-              >
-                {CURRICULUM_TYPES.map(ct => (
-                  <option key={ct} value={ct}>{ct}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1.5">
-              Preferred Explanation Language
-            </label>
-            <div className="relative max-w-sm">
-              <Languages className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <select
-                disabled={!isEditing}
-                value={preferredLanguage}
-                onChange={(e) => setPreferredLanguage(e.target.value as PreferredLanguage)}
-                className="w-full pl-10 pr-4 py-2.5 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 disabled:opacity-75 disabled:cursor-not-allowed"
-              >
-                <option value="English">English</option>
-                <option value="Kannada">Kannada</option>
-                <option value="Hindi">Hindi</option>
-                <option value="Tamil">Tamil</option>
-                <option value="Telugu">Telugu</option>
-                <option value="Malayalam">Malayalam</option>
-                <option value="Other">Other</option>
-              </select>
+              <div className="relative max-w-sm">
+                <Languages className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <select
+                  disabled={!isEditing}
+                  value={preferredLanguage}
+                  onChange={(e) => setPreferredLanguage(e.target.value as PreferredLanguage)}
+                  className="w-full pl-10 pr-4 py-2.5 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 disabled:opacity-75 disabled:cursor-not-allowed"
+                >
+                  <option value="English">English</option>
+                  <option value="Kannada">Kannada</option>
+                  <option value="Hindi">Hindi</option>
+                  <option value="Tamil">Tamil</option>
+                  <option value="Telugu">Telugu</option>
+                  <option value="Malayalam">Malayalam</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
             </div>
           </div>
 
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="block text-xs font-bold text-slate-700">
-                Enrolled Subjects
-              </label>
+              <div className="flex items-center gap-2">
+                <label className="block text-xs font-bold text-slate-700">
+                  Enrolled Subjects
+                </label>
+                <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200/50 px-2 py-0.5 rounded-full">
+                  {selectedSubjects.length} selected
+                </span>
+              </div>
               <button
                 type="button"
                 onClick={() => navigate('/syllabus')}
@@ -408,6 +452,17 @@ export const MyProfile: React.FC = () => {
                 <span>View Full Syllabus Chapters</span>
               </button>
             </div>
+
+            {boardReviewNotice && (
+              <div className="mb-3 p-3 bg-amber-50/80 border border-amber-200 rounded-xl text-xs text-amber-800 flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <span className="font-bold">Board Change Review: </span>
+                  <span>{boardReviewNotice}</span>
+                </div>
+              </div>
+            )}
+
             <div className="flex flex-wrap gap-2">
               {availableSubjectsList.map((subjObj) => {
                 const isSelected = selectedSubjects.includes(subjObj.subject);
@@ -419,19 +474,97 @@ export const MyProfile: React.FC = () => {
                     onClick={() => toggleSubject(subjObj.subject)}
                     className={`py-1.5 px-3 rounded-xl text-xs font-semibold border transition flex items-center gap-1.5 ${
                       isSelected
-                        ? 'bg-indigo-50 border-indigo-300 text-indigo-900 font-bold'
+                        ? 'bg-indigo-50 border-indigo-300 text-indigo-900 font-bold ring-1 ring-indigo-400/20'
                         : isEditing 
                         ? 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
                         : 'bg-slate-50 border-slate-200 text-slate-400 opacity-50'
                     }`}
                   >
-                    <BookOpen className="w-3.5 h-3.5" />
+                    <BookOpen className={`w-3.5 h-3.5 ${isSelected ? 'text-indigo-600' : 'text-slate-400'}`} />
                     <span>{subjObj.subject}</span>
+                    {subjObj.isRegionalLanguage && (
+                      <span className="text-[9px] uppercase font-bold text-indigo-700 bg-indigo-100/70 border border-indigo-200/60 px-1.5 py-0.5 rounded-md">
+                        Regional Language
+                      </span>
+                    )}
                     {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-indigo-600" />}
                   </button>
                 );
               })}
+
+              {/* Any additional user-added custom/elective subjects */}
+              {selectedSubjects
+                .filter(s => !availableSubjectsList.some(avail => avail.subject === s))
+                .map((customSubj) => (
+                  <div
+                    key={customSubj}
+                    className="py-1.5 px-3 rounded-xl text-xs font-semibold border bg-indigo-50 border-indigo-300 text-indigo-900 font-bold ring-1 ring-indigo-400/20 flex items-center gap-1.5"
+                  >
+                    <BookOpen className="w-3.5 h-3.5 text-indigo-600" />
+                    <span>{customSubj}</span>
+                    <span className="text-[9px] uppercase font-bold text-indigo-700 bg-indigo-100 px-1.5 py-0.5 rounded">
+                      Elective
+                    </span>
+                    {isEditing && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveCustomSubject(customSubj)}
+                        className="text-indigo-400 hover:text-rose-600 font-bold ml-1"
+                        title="Remove subject"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                ))}
             </div>
+
+            {/* Add Elective / Other Supported Subject */}
+            {isEditing && (
+              <div className="mt-3">
+                {showAddElective ? (
+                  <div className="flex flex-wrap items-center gap-2 p-2.5 bg-slate-50 border border-slate-200 rounded-xl animate-in fade-in duration-150">
+                    <input
+                      type="text"
+                      value={electiveInput}
+                      onChange={(e) => setElectiveInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAddElective();
+                        }
+                      }}
+                      placeholder="Enter subject or language (e.g. Sanskrit, French, Psychology)..."
+                      className="flex-1 min-w-[200px] px-3 py-1.5 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                      autoFocus
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddElective}
+                      className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition shadow-sm"
+                    >
+                      Add Subject
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setShowAddElective(false); setElectiveInput(''); }}
+                      className="px-2 py-1.5 text-slate-500 hover:text-slate-700 text-xs font-medium"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setShowAddElective(true)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-dashed border-slate-300 text-slate-600 hover:text-indigo-600 hover:border-indigo-300 hover:bg-indigo-50/50 text-xs font-semibold transition"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Add Elective / Other Subject</span>
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </form>
       </div>
