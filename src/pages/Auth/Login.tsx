@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, Sparkles, Lock, Mail, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Eye, EyeOff, Sparkles, Lock, Mail, ArrowRight } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 export const Login: React.FC = () => {
-  const { login, isSupabaseActive } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
 
   const [email, setEmail] = useState('');
@@ -46,21 +46,6 @@ export const Login: React.FC = () => {
           <p className="text-xs font-semibold text-slate-500 mt-1">
             Learn • Improve • Succeed
           </p>
-        </div>
-
-        {/* Database Mode Chip */}
-        <div className="mb-6 py-2 px-3.5 rounded-xl bg-slate-50 border border-slate-200/70 flex items-center justify-between text-xs">
-          <span className="flex items-center gap-1.5 text-slate-600 font-medium">
-            <ShieldCheck className="w-4 h-4 text-indigo-500" />
-            Auth System:
-          </span>
-          <span className={`font-bold px-2 py-0.5 rounded-full text-[11px] ${
-            isSupabaseActive 
-              ? 'bg-emerald-100 text-emerald-800' 
-              : 'bg-indigo-100 text-indigo-800'
-          }`}>
-            {isSupabaseActive ? 'Supabase Auth' : 'Local / Demo Mode'}
-          </span>
         </div>
 
         {error && (
