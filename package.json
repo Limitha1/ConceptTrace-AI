@@ -7,7 +7,7 @@
     "dev": "vite",
     "server": "node server/standalone.js",
     "build": "tsc -b && vite build",
-    "test": "node --experimental-strip-types --test tests/analyticsEngine.test.ts tests/analyticsIntegration.test.ts tests/syllabusEngine.test.ts",
+    "test": "node --experimental-strip-types --test tests/analyticsEngine.test.ts tests/analyticsIntegration.test.ts tests/syllabusEngine.test.ts tests/conceptLibraryEngine.test.ts",
     "lint": "oxlint",
     "preview": "vite preview"
   },

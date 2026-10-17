@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { handleDoubtApi } from './doubtApi.ts';
 import { handleSyllabusApi } from './syllabusApi.ts';
+import { handleConceptApi } from './conceptApi.ts';
 
 // Simple .env parser for standalone execution
 function loadEnvFile() {
@@ -35,6 +36,11 @@ const server = http.createServer(async (req, res) => {
 
   if (req.url && req.url.startsWith('/api/syllabus')) {
     const handled = await handleSyllabusApi(req, res, env);
+    if (handled) return;
+  }
+
+  if (req.url && req.url.startsWith('/api/concept')) {
+    const handled = await handleConceptApi(req, res, env);
     if (handled) return;
   }
 

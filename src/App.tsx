@@ -16,6 +16,7 @@ import { PracticePage } from './pages/Practice/PracticePage';
 import { ProgressReportPage } from './pages/Progress/ProgressReportPage';
 import { SettingsPage } from './pages/Settings/SettingsPage';
 import { SyllabusPage } from './pages/Syllabus/SyllabusPage';
+import { ConceptLibraryPage } from './pages/ConceptLibrary/ConceptLibraryPage';
 
 // Guard for protected routes
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -82,6 +83,7 @@ export const App: React.FC = () => {
             >
               <Route path="/" element={<HomeDashboard />} />
               <Route path="/profile" element={<MyProfile />} />
+              <Route path="/concept-library" element={<ConceptLibraryPage />} />
               <Route path="/syllabus" element={<SyllabusPage />} />
               <Route path="/doubt" element={<AskDoubt />} />
               <Route path="/history" element={<LearningHistory />} />

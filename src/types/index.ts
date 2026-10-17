@@ -251,3 +251,145 @@ export interface SyllabusTopic {
   prerequisites: string[];
 }
 
+export interface ConceptFormulaItem {
+  name: string;
+  formula: string;
+  variables: { symbol: string; meaning: string; siUnit?: string }[];
+  notes?: string;
+}
+
+export interface ConceptWorkedExample {
+  id: string;
+  question: string;
+  given: string[];
+  methodOrFormula: string;
+  steps: { stepNumber: number; title: string; derivationOrCalc: string; explanation: string }[];
+  finalAnswer: string;
+  reasoningNotes?: string;
+}
+
+export interface ConceptCommonMistake {
+  id: string;
+  misconception: string;
+  whyIncorrect: string;
+  correctUnderstanding: string;
+}
+
+export interface ConceptPracticeQuestion {
+  id: string;
+  question: string;
+  questionType: 'multiple-choice' | 'numerical' | 'conceptual';
+  options?: string[];
+  correctAnswer: string;
+  explanation: string;
+  hint?: string;
+  difficulty: 'Easy' | 'Medium' | 'Challenging';
+}
+
+export interface ConceptExplanationSection {
+  heading: string;
+  content: string;
+  keyTakeaway?: string;
+  formulaOrRule?: string;
+  diagramOrVisualPrompt?: string;
+}
+
+export interface ConceptShortNotes {
+  essentialDefinitions: { term: string; definition: string }[];
+  keyFormulas: ConceptFormulaItem[];
+  coreLawsAndPrinciples: { name: string; statement: string; application?: string }[];
+  comparisonTables?: { title: string; headers: string[]; rows: string[][] }[];
+  frequentlyConfusedPoints: { pointA: string; pointB: string; clarification: string }[];
+  vitalTakeaways: string[];
+}
+
+export interface ConceptDetailContent {
+  id: string;
+  topicId: string;
+  topicTitle: string;
+  subject: string;
+  chapter: string;
+  board: EducationBoard;
+  classLevel: ClassLevel;
+  stream?: StudentStream;
+  academicYear: string;
+  
+  // A. Concept Overview
+  overview: {
+    simpleIntro: string;
+    learningObjectives: string[];
+    prerequisites: string[];
+    estimatedReadingTimeMinutes: number;
+    difficultyLevel: 'Foundational' | 'Intermediate' | 'Advanced';
+  };
+
+  // B. Detailed Explanation
+  sections: ConceptExplanationSection[];
+
+  // C. Short Notes
+  shortNotes: ConceptShortNotes;
+
+  // D. Worked Examples
+  workedExamples: ConceptWorkedExample[];
+
+  // E. Common Mistakes
+  commonMistakes: ConceptCommonMistake[];
+
+  // F. Quick Revision Summary
+  quickRevision: {
+    essentialTakeaways: string[];
+    mustKnowFormulas: string[];
+    selfCheckQuestions: string[];
+    relatedConcepts: { name: string; linkTopicId?: string; subject?: string }[];
+  };
+
+  // Practice Questions
+  practiceQuestions: ConceptPracticeQuestion[];
+
+  // Verification & Metadata
+  isAiGenerated: boolean;
+  isVerifiedContent: boolean;
+  sourceReferences: string[];
+  lastUpdated: string;
+}
+
+export interface ConceptBookmark {
+  id: string;
+  userId: string;
+  topicId: string;
+  topicTitle: string;
+  subject: string;
+  chapter: string;
+  board: EducationBoard;
+  classLevel: ClassLevel;
+  bookmarkedAt: string;
+  noteSnippet?: string;
+}
+
+export interface ConceptRevisionRecord {
+  id: string;
+  userId: string;
+  topicId: string;
+  topicTitle: string;
+  subject: string;
+  chapter: string;
+  board: EducationBoard;
+  classLevel: ClassLevel;
+  lastRevisedAt: string;
+  revisionCount: number;
+  notes?: string;
+}
+
+export interface RecentlyViewedConcept {
+  id: string;
+  userId: string;
+  topicId: string;
+  topicTitle: string;
+  subject: string;
+  chapter: string;
+  board: EducationBoard;
+  classLevel: ClassLevel;
+  viewedAt: string;
+}
+
+

@@ -6,7 +6,13 @@ import type {
   StudySession, 
   WeakTopicAnalysis,
   NotificationItem,
-  Subject
+  Subject,
+  EducationBoard,
+  ClassLevel,
+  ConceptBookmark,
+  ConceptRevisionRecord,
+  RecentlyViewedConcept,
+  ConceptDetailContent
 } from '../types/index.ts';
 import { calculateAnalyticsSummary, calculateTopicEvidence, toCalendarDateString } from './analyticsEngine.ts';
 
@@ -20,6 +26,10 @@ const STORAGE_KEYS = {
   PRACTICE_SESSIONS: 'concepttrace_practice_sessions',
   STUDY_SESSIONS: 'concepttrace_study_sessions',
   NOTIFICATIONS: 'concepttrace_notifications',
+  CONCEPT_BOOKMARKS: 'concepttrace_concept_bookmarks',
+  CONCEPT_REVISIONS: 'concepttrace_concept_revisions',
+  CONCEPT_RECENT: 'concepttrace_concept_recent',
+  CONCEPT_CACHE: 'concepttrace_concept_cache',
   IS_INITIALIZED: 'concepttrace_initialized_v4'
 };
 
@@ -1062,3 +1072,165 @@ export const runRlsVerificationAudit = (): RlsVerificationResult[] => {
     }
   ];
 };
+
+// ==========================================
+// CONCEPT LIBRARY: BOOKMARKS & SMART REVISION
+// ==========================================
+
+export const getConceptBookmarks = (userId?: string): ConceptBookmark[] => {
+  try {
+    const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(STORAGE_KEYS.CONCEPT_BOOKMARKS) : null;
+    const all: ConceptBookmark[] = raw ? JSON.parse(raw) : [];
+    const targetId = userId || getStoredUser()?.id;
+    if (!targetId) return [];
+    return all.filter(b => b.userId === targetId);
+  } catch {
+    return [];
+  }
+};
+
+export const saveConceptBookmark = (bookmark: ConceptBookmark) => {
+  if (typeof localStorage === 'undefined') return;
+  const raw = localStorage.getItem(STORAGE_KEYS.CONCEPT_BOOKMARKS);
+  const all: ConceptBookmark[] = raw ? JSON.parse(raw) : [];
+  // Deduplicate on topicId and userId
+  const filtered = all.filter(b => !(b.topicId === bookmark.topicId && b.userId === bookmark.userId));
+  const updated = [bookmark, ...filtered];
+  localStorage.setItem(STORAGE_KEYS.CONCEPT_BOOKMARKS, JSON.stringify(updated));
+};
+
+export const removeConceptBookmark = (topicId: string, userId?: string) => {
+  if (typeof localStorage === 'undefined') return;
+  const targetId = userId || getStoredUser()?.id;
+  if (!targetId) return;
+  const raw = localStorage.getItem(STORAGE_KEYS.CONCEPT_BOOKMARKS);
+  const all: ConceptBookmark[] = raw ? JSON.parse(raw) : [];
+  const updated = all.filter(b => !(b.topicId === topicId && b.userId === targetId));
+  localStorage.setItem(STORAGE_KEYS.CONCEPT_BOOKMARKS, JSON.stringify(updated));
+};
+
+export const isConceptBookmarked = (topicId: string, userId?: string): boolean => {
+  const bookmarks = getConceptBookmarks(userId);
+  return bookmarks.some(b => b.topicId === topicId);
+};
+
+export const getConceptRevisions = (userId?: string): ConceptRevisionRecord[] => {
+  try {
+    const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(STORAGE_KEYS.CONCEPT_REVISIONS) : null;
+    const all: ConceptRevisionRecord[] = raw ? JSON.parse(raw) : [];
+    const targetId = userId || getStoredUser()?.id;
+    if (!targetId) return [];
+    return all.filter(r => r.userId === targetId);
+  } catch {
+    return [];
+  }
+};
+
+export const markConceptAsRevised = (
+  topicId: string, 
+  topicTitle: string, 
+  subject: string, 
+  chapter: string, 
+  board: EducationBoard, 
+  classLevel: ClassLevel, 
+  userId?: string
+): ConceptRevisionRecord => {
+  const targetId = userId || getStoredUser()?.id || 'usr_anonymous';
+  const existing = getConceptRevisions(targetId);
+  const prevRecord = existing.find(r => r.topicId === topicId);
+  
+  const updatedRecord: ConceptRevisionRecord = {
+    id: prevRecord?.id || `rev-${Date.now()}-${topicId}`,
+    userId: targetId,
+    topicId,
+    topicTitle,
+    subject,
+    chapter,
+    board,
+    classLevel,
+    lastRevisedAt: new Date().toISOString(),
+    revisionCount: (prevRecord?.revisionCount || 0) + 1
+  };
+
+  if (typeof localStorage !== 'undefined') {
+    const raw = localStorage.getItem(STORAGE_KEYS.CONCEPT_REVISIONS);
+    const all: ConceptRevisionRecord[] = raw ? JSON.parse(raw) : [];
+    const filtered = all.filter(r => !(r.topicId === topicId && r.userId === targetId));
+    localStorage.setItem(STORAGE_KEYS.CONCEPT_REVISIONS, JSON.stringify([updatedRecord, ...filtered]));
+  }
+
+  return updatedRecord;
+};
+
+export const getRecentlyViewedConcepts = (userId?: string): RecentlyViewedConcept[] => {
+  try {
+    const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(STORAGE_KEYS.CONCEPT_RECENT) : null;
+    const all: RecentlyViewedConcept[] = raw ? JSON.parse(raw) : [];
+    const targetId = userId || getStoredUser()?.id;
+    if (!targetId) return [];
+    return all.filter(r => r.userId === targetId).slice(0, 10);
+  } catch {
+    return [];
+  }
+};
+
+export const recordConceptView = (
+  concept: { 
+    topicId: string; 
+    topicTitle: string; 
+    subject: string; 
+    chapter: string; 
+    board: EducationBoard; 
+    classLevel: ClassLevel; 
+  },
+  userId?: string
+) => {
+  if (typeof localStorage === 'undefined') return;
+  const targetId = userId || getStoredUser()?.id;
+  if (!targetId) return;
+
+  const raw = localStorage.getItem(STORAGE_KEYS.CONCEPT_RECENT);
+  const all: RecentlyViewedConcept[] = raw ? JSON.parse(raw) : [];
+  const filtered = all.filter(r => !(r.topicId === concept.topicId && r.userId === targetId));
+
+  const newRecent: RecentlyViewedConcept = {
+    id: `rcv-${Date.now()}-${concept.topicId}`,
+    userId: targetId,
+    ...concept,
+    viewedAt: new Date().toISOString()
+  };
+
+  localStorage.setItem(STORAGE_KEYS.CONCEPT_RECENT, JSON.stringify([newRecent, ...filtered].slice(0, 20)));
+};
+
+export const getCachedConceptContent = (
+  topicId: string, 
+  board?: string, 
+  classLevel?: string
+): ConceptDetailContent | null => {
+  try {
+    if (typeof localStorage === 'undefined') return null;
+    const raw = localStorage.getItem(STORAGE_KEYS.CONCEPT_CACHE);
+    if (!raw) return null;
+    const cacheMap: Record<string, ConceptDetailContent> = JSON.parse(raw);
+    const key = `${board || 'CBSE'}_${classLevel || '12'}_${topicId.toLowerCase().trim()}`;
+    return cacheMap[key] || cacheMap[topicId] || null;
+  } catch {
+    return null;
+  }
+};
+
+export const saveCachedConceptContent = (content: ConceptDetailContent) => {
+  if (typeof localStorage === 'undefined') return;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.CONCEPT_CACHE);
+    const cacheMap: Record<string, ConceptDetailContent> = raw ? JSON.parse(raw) : {};
+    const key = `${content.board}_${content.classLevel}_${content.topicId.toLowerCase().trim()}`;
+    cacheMap[key] = content;
+    cacheMap[content.topicId] = content;
+    localStorage.setItem(STORAGE_KEYS.CONCEPT_CACHE, JSON.stringify(cacheMap));
+  } catch {
+    // Quota fallback
+  }
+};
+
