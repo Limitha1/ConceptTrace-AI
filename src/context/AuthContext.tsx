@@ -22,6 +22,7 @@ interface AuthContextType {
   isSupabaseActive: boolean;
   login: (email: string, password?: string) => Promise<{ success: boolean; error?: string }>;
   register: (fullName: string, email: string, password?: string) => Promise<{ success: boolean; error?: string }>;
+  signInWithGoogle: () => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   updateProfile: (updated: Partial<UserProfile>) => void;
   updateEducationProfile: (updated: Partial<EducationProfile>) => void;
@@ -41,23 +42,63 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Ensure demo seed is ready
     initializeStorage();
 
+    let authListener: any = null;
+
+    if (isSupabaseActive && supabase) {
+      // Listen for OAuth callbacks (Google sign-in redirect)
+      const { data } = supabase.auth.onAuthStateChange(async (_event, session) => {
+        if (session?.user) {
+          const profileUser: UserProfile = {
+            id: session.user.id,
+            email: session.user.email || '',
+            fullName: session.user.user_metadata?.full_name || session.user.user_metadata?.name || 'Student',
+            avatarUrl: session.user.user_metadata?.avatar_url || '/assets/robot_avatar.jpg',
+            role: 'student',
+            createdAt: session.user.created_at || new Date().toISOString()
+          };
+          setUser(profileUser);
+          saveStoredUser(profileUser);
+
+          let edu = getStoredEducationProfile(session.user.id);
+          if (!edu) {
+            edu = {
+              userId: session.user.id,
+              board: 'CBSE',
+              classLevel: '12',
+              stream: 'Science',
+              curriculumType: 'NCERT / National Curriculum Framework (NCF)',
+              academicYear: '2026-27',
+              preferredLanguage: 'English',
+              subjects: ['Physics', 'Chemistry', 'Mathematics'],
+              isProfileComplete: false,
+              updatedAt: new Date().toISOString()
+            };
+            saveStoredEducationProfile(edu);
+          }
+          setEducationProfile(edu);
+          setIsLoading(false);
+        }
+      });
+      authListener = data.subscription;
+    }
+
     const loadSession = async () => {
       setIsLoading(true);
       if (isSupabaseActive && supabase) {
         try {
           const { data: { session } } = await supabase.auth.getSession();
           if (session?.user) {
-            // Fetch profile from supabase or fallback to local
-            const stored = getStoredUser();
-            setUser({
+            const profileUser: UserProfile = {
               id: session.user.id,
-              email: session.user.email || stored.email,
-              fullName: session.user.user_metadata?.full_name || stored.fullName,
-              avatarUrl: stored.avatarUrl && !stored.avatarUrl.includes('student_avatar') ? stored.avatarUrl : '/assets/robot_avatar.jpg',
+              email: session.user.email || '',
+              fullName: session.user.user_metadata?.full_name || session.user.user_metadata?.name || 'Student',
+              avatarUrl: session.user.user_metadata?.avatar_url || '/assets/robot_avatar.jpg',
               role: 'student',
-              createdAt: session.user.created_at || stored.createdAt
-            });
-            setEducationProfile(getStoredEducationProfile());
+              createdAt: session.user.created_at || new Date().toISOString()
+            };
+            setUser(profileUser);
+            saveStoredUser(profileUser);
+            setEducationProfile(getStoredEducationProfile(session.user.id));
             setIsLoading(false);
             return;
           }
@@ -80,7 +121,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     loadSession();
+
+    return () => {
+      authListener?.unsubscribe();
+    };
   }, [isSupabaseActive]);
+
+  const signInWithGoogle = async () => {
+    setIsLoading(true);
+    if (isSupabaseActive && supabase) {
+      try {
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: window.location.origin
+          }
+        });
+        if (error) {
+          setIsLoading(false);
+          return { success: false, error: error.message };
+        }
+        return { success: true };
+      } catch (err: any) {
+        setIsLoading(false);
+        return { success: false, error: err.message || 'Google sign-in failed' };
+      }
+    }
+    setIsLoading(false);
+    return { success: false, error: 'Supabase configuration required for Google Sign-In.' };
+  };
 
   const login = async (email: string, password?: string) => {
     setIsLoading(true);
@@ -295,6 +364,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isSupabaseActive,
         login,
         register,
+        signInWithGoogle,
         logout,
         updateProfile,
         updateEducationProfile,
