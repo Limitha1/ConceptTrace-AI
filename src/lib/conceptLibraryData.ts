@@ -877,7 +877,7 @@ export function generateStandardConceptContent(params: {
         correctAnswer: `It defines the core qualitative and quantitative behavior under standard conditions in ${chapter}.`,
         hint: `Consider how ${topicTitle} is introduced in the official ${board} textbook for Class ${classLevel}.`,
         explanation: `${topicTitle} provides the essential conceptual or quantitative model used across ${chapter} to analyze problems and derive higher-order relationships.`,
-        difficulty: 'Foundational'
+        difficulty: 'Easy'
       },
       {
         id: `pq-${topicId}-2`,

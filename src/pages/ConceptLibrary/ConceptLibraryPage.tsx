@@ -13,7 +13,6 @@ import {
   Sparkles, 
   HelpCircle, 
   Target, 
-  RefreshCw, 
   ChevronRight, 
   Layers, 
   FileText, 
@@ -26,10 +25,8 @@ import {
   BookCheck, 
   Compass, 
   Info,
-  Calendar,
   RotateCcw,
-  Zap,
-  ExternalLink
+  Zap
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import type { 
@@ -86,14 +83,14 @@ export const ConceptLibraryPage: React.FC = () => {
   // Active topic concept data
   const [activeConcept, setActiveConcept] = useState<ConceptDetailContent | null>(null);
   const [activeTab, setActiveTab] = useState<'learn' | 'notes' | 'examples' | 'mistakes' | 'practice'>('learn');
-  const [isLoadingConcept, setIsLoadingConcept] = useState<boolean>(false);
+  const [, setIsLoadingConcept] = useState<boolean>(false);
   const [conceptLoadSource, setConceptLoadSource] = useState<string>('');
   const [conceptLoadMessage, setConceptLoadMessage] = useState<string | null>(null);
 
   // Search state
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [searchResults, setSearchResults] = useState<ConceptSearchResult[]>([]);
-  const [isSearching, setIsSearching] = useState<boolean>(false);
+  const [, setIsSearching] = useState<boolean>(false);
 
   // User revision state
   const [bookmarks, setBookmarks] = useState(() => getConceptBookmarks(user?.id));
@@ -140,7 +137,7 @@ export const ConceptLibraryPage: React.FC = () => {
   useEffect(() => {
     if (availableSubjects.length > 0 && (!selectedSubject || !availableSubjects.includes(selectedSubject))) {
       // Pick first subject enrolled in profile if present, else first available
-      const enrolledMatch = educationProfile?.enrolledSubjects?.find(s => availableSubjects.includes(s));
+      const enrolledMatch = educationProfile?.subjects?.find((s: string) => availableSubjects.includes(s));
       setSelectedSubject(enrolledMatch || availableSubjects[0]);
     }
   }, [availableSubjects, selectedSubject, educationProfile]);
@@ -1394,7 +1391,7 @@ export const ConceptLibraryPage: React.FC = () => {
 
                         {/* Options List */}
                         <div className="space-y-2">
-                          {currentQ.options.map((opt, optIdx) => {
+                          {(currentQ.options || []).map((opt, optIdx) => {
                             let optStyle = 'border-slate-200 hover:border-purple-300 hover:bg-purple-50/50 bg-white text-slate-800';
                             if (isSubmitted) {
                               if (opt === currentQ.correctAnswer) {

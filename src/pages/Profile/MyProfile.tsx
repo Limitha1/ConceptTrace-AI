@@ -2,7 +2,6 @@ import React, { useState, useMemo } from 'react';
 import { 
   User, 
   Mail, 
-  GraduationCap, 
   BookOpen, 
   Languages, 
   CheckCircle2, 
@@ -18,7 +17,6 @@ import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import type { EducationBoard, ClassLevel, PreferredLanguage, StudentStream } from '../../types';
 import { 
-  STREAM_OPTIONS, 
   getAvailableSubjects, 
   validateEducationSelections 
 } from '../../lib/syllabusData';

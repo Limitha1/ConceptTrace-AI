@@ -3,9 +3,7 @@ import type {
   EducationBoard, 
   ClassLevel, 
   StudentStream,
-  ConceptBookmark,
-  ConceptRevisionRecord,
-  RecentlyViewedConcept
+  ConceptRevisionRecord
 } from '../types/index.ts';
 import { 
   CURATED_CONCEPTS, 
@@ -13,8 +11,7 @@ import {
   generateStandardConceptContent 
 } from './conceptLibraryData.ts';
 import { 
-  AUTHENTIC_SYLLABI, 
-  getSyllabusForSubject 
+  AUTHENTIC_SYLLABI 
 } from './syllabusData.ts';
 import { 
   getCachedConceptContent, 
@@ -253,7 +250,7 @@ export function getSuggestedRevisions(
   const weakTopics = calculateWeakTopics(userId);
   for (const wt of weakTopics) {
     // Only prioritize topics where student actually struggled or has repeated errors
-    if (wt.status === 'Needs Practice' || (wt.status === 'Needs More Evidence' && wt.accuracy !== null && wt.accuracy < 50)) {
+    if (wt.category === 'Needs Practice' || (wt.eligibleAttempts > 0 && wt.category === 'Needs More Evidence' && wt.accuracy !== null && wt.accuracy < 50)) {
       const topicKey = wt.topic.toLowerCase().trim();
       if (!seenTopics.has(topicKey)) {
         seenTopics.add(topicKey);
@@ -288,10 +285,10 @@ export function getSuggestedRevisions(
           subject: wt.subject,
           board: userBoard || 'CBSE',
           classLevel: userClassLevel || '12',
-          reason: wt.totalAttempts >= 3 ? 'repeated_errors' : 'weak_topic',
+          reason: wt.eligibleAttempts >= 3 ? 'repeated_errors' : 'weak_topic',
           reasonLabel: wt.accuracy !== null ? `Low Accuracy (${wt.accuracy}%) in Practice` : 'Identified in Diagnostic Attempts',
           accuracy: wt.accuracy,
-          totalAttempts: wt.totalAttempts
+          totalAttempts: wt.eligibleAttempts
         });
       }
     }

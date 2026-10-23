@@ -15,9 +15,7 @@ import {
   BOARD_CATEGORIES, 
   searchEducationBoards, 
   normalizeBoardToOption, 
-  formatBoardOptionLabel,
-  type BoardOption, 
-  type BoardCategory 
+  type BoardOption 
 } from '../../lib/boardsData';
 
 interface EducationBoardSelectorProps {

@@ -14,7 +14,7 @@
  * - Clearly flags adapted or unconfirmed state board curricula.
  */
 
-import type { SubjectSyllabus, OfficialSyllabusDocument } from '../types';
+import type { SubjectSyllabus, OfficialSyllabusDocument } from '../types/index.ts';
 
 export type VerificationBadgeType = 'verified' | 'pending' | 'unconfirmed' | 'adapted';
 
@@ -65,7 +65,7 @@ export function evaluateSyllabusVerification(
   const requestedSession = targetAcademicYear || '2026-27';
   
   // Find if any official document explicitly covers the target session
-  const matchingDoc = docs.find(d => sessionCoversTarget(d.academicYear, requestedSession));
+  const matchingDoc = docs.find((d: OfficialSyllabusDocument) => sessionCoversTarget(d.academicYear, requestedSession));
 
   // Determine latest session on record from available documents
   const latestDocSession = docs.length > 0 ? docs[0].academicYear : '2024-25 & 2025-26';

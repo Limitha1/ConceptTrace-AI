@@ -587,7 +587,7 @@ export const HomeDashboard: React.FC = () => {
                         <div className="flex-1">
                           <div className="flex items-center justify-between">
                             <p className="text-xs font-bold text-slate-900">
-                              Review Prerequisite: {priorityGap.prerequisites[0] || 'Core Concepts'}
+                              Review Prerequisite: {priorityGap.prerequisiteConcepts?.[0] || 'Core Concepts'}
                             </p>
                             <span className="text-[10px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full">
                               Priority Gap

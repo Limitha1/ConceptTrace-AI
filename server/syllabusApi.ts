@@ -1,7 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { ViteDevServer } from 'vite';
 import { 
-  AUTHENTIC_SYLLABI, 
   getSyllabusForSubject, 
   getAvailableSubjects,
   validateEducationSelections 

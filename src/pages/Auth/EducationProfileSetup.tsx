@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   GraduationCap, 
@@ -12,8 +12,7 @@ import {
   Compass,
   Info,
   Plus,
-  X,
-  Sparkles
+  X
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import type { 
@@ -62,9 +61,6 @@ export const EducationProfileSetup: React.FC = () => {
   }, [board]);
   const calendarRule = useMemo(() => {
     return getAcademicCalendarRule(board);
-  }, [board]);
-  const boardLanguageProfile = useMemo(() => {
-    return getBoardLanguageProfile(board);
   }, [board]);
 
   const [preferredLanguage, setPreferredLanguage] = useState<PreferredLanguage>(educationProfile?.preferredLanguage || 'English');

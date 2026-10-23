@@ -9,7 +9,9 @@ import {
   saveRegisteredUser,
   initializeStorage,
   defaultUserProfile,
-  secondaryTestUser
+  secondaryTestUser,
+  defaultEducationProfile,
+  secondaryEducationProfile
 } from '../lib/storage';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { determineCurrentAcademicYear } from '../lib/academicCalendar';
@@ -353,13 +355,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (userType === 'limitha') {
       setUser(defaultUserProfile);
       saveStoredUser(defaultUserProfile);
-      const edu = getStoredEducationProfile('usr_limitha_default');
+      const edu = getStoredEducationProfile('usr_limitha_default') || defaultEducationProfile;
       setEducationProfile(edu);
       saveStoredEducationProfile(edu);
     } else {
       setUser(secondaryTestUser);
       saveStoredUser(secondaryTestUser);
-      const edu = getStoredEducationProfile('usr_student_b');
+      const edu = getStoredEducationProfile('usr_student_b') || secondaryEducationProfile;
       setEducationProfile(edu);
       saveStoredEducationProfile(edu);
     }

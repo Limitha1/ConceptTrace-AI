@@ -4,7 +4,6 @@ import {
   GraduationCap, 
   BookOpen, 
   Layers, 
-  Calendar, 
   CheckCircle2, 
   AlertCircle, 
   Clock, 
@@ -15,20 +14,15 @@ import {
   ChevronDown, 
   ChevronRight, 
   Sparkles, 
-  HelpCircle, 
-  Award, 
   RefreshCw, 
   Upload, 
-  Compass, 
   SlidersHorizontal,
   FolderOpen
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import type { 
   SubjectSyllabus, 
-  SyllabusSubjectUnit, 
-  SyllabusChapter, 
-  SyllabusTopicItem 
+  SyllabusSubjectUnit 
 } from '../../types';
 import { fetchEnrolledSyllabi, extractCustomSyllabus } from '../../lib/syllabusService';
 import { formatAcademicYearDisplay } from '../../lib/academicCalendar';
@@ -203,10 +197,6 @@ export const SyllabusPage: React.FC = () => {
 
   const totalChaptersCount = currentSyllabus?.units?.reduce(
     (acc, u) => acc + u.chapters.length, 0
-  ) || 0;
-
-  const totalTopicsCount = currentSyllabus?.units?.reduce(
-    (acc, u) => acc + u.chapters.reduce((chAcc, ch) => chAcc + ch.topics.length, 0), 0
   ) || 0;
 
   if (isAuthLoading || (isLoading && syllabi.length === 0)) {

@@ -63,7 +63,7 @@ export function getAvailableSubjects(
  * Returns default enrolled subjects for a board, including its primary regional language.
  */
 export function getDefaultSubjectsForBoard(
-  board: EducationBoard,
+  _board: EducationBoard,
   classLevel: ClassLevel,
   stream?: StudentStream
 ): string[] {

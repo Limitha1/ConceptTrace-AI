@@ -330,7 +330,7 @@ You MUST output ONLY a valid JSON object matching the exact structure below. No 
         continue;
       }
 
-      const resJson = await response.json();
+      const resJson = (await response.json()) as any;
       const textOutput = resJson?.candidates?.[0]?.content?.parts?.[0]?.text;
       if (!textOutput) {
         lastError = `Empty response from candidate ${candidate}`;
